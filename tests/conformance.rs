@@ -53,6 +53,10 @@ const EXPECTED_MISSING_PLANTS: [&str; 2] = ["Knotgrass", "VenomousTentacula"];
 const EXPECTED_BREWED_POTIONS: usize = 5;
 const EXPECTED_MISSING_POTIONS: [&str; 1] = ["InvisibilityPotion"];
 
+/// "Merlin's Beard!" values captured from HL-00-00.sav: 29 of 95 Merlin
+/// Trials completed.
+const EXPECTED_COMPLETED_TRIALS: usize = 29;
+
 fn fixture_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(FIXTURE)
 }
@@ -121,11 +125,12 @@ fn conformance_against_real_save_data() {
 
 #[test]
 fn conformance_nature_of_the_beast() {
-    let (_, beasts, _, _) = analyze_all_with_db(
+    let full = analyze_all_with_db(
         &fixture_path(),
         std::env::temp_dir().join("hl_beast_test.db"),
     )
     .expect("failed to analyze fixture save");
+    let beasts = &full.beasts;
 
     assert_eq!(beasts.achievement_id, "PFA_26");
     assert_eq!(beasts.total_beasts, 12);
@@ -161,11 +166,12 @@ fn conformance_nature_of_the_beast() {
 
 #[test]
 fn conformance_put_down_roots() {
-    let (_, _, plants, _) = analyze_all_with_db(
+    let full = analyze_all_with_db(
         &fixture_path(),
         std::env::temp_dir().join("hl_plant_test.db"),
     )
     .expect("failed to analyze fixture save");
+    let plants = &full.plants;
 
     assert_eq!(plants.achievement_id, "PFA_28");
     assert_eq!(plants.total_plants, 8);
@@ -201,11 +207,12 @@ fn conformance_put_down_roots() {
 
 #[test]
 fn conformance_going_through_the_potions() {
-    let (_, _, _, potions) = analyze_all_with_db(
+    let full = analyze_all_with_db(
         &fixture_path(),
         std::env::temp_dir().join("hl_potion_test.db"),
     )
     .expect("failed to analyze fixture save");
+    let potions = &full.potions;
 
     assert_eq!(potions.achievement_id, "PFA_27");
     assert_eq!(potions.total_potions, 6);
@@ -236,5 +243,26 @@ fn conformance_going_through_the_potions() {
     assert_eq!(
         got_missing, expected_missing,
         "missing potions diverged from golden values"
+    );
+}
+
+#[test]
+fn conformance_merlins_beard() {
+    let full = analyze_all_with_db(
+        &fixture_path(),
+        std::env::temp_dir().join("hl_merlin_test.db"),
+    )
+    .expect("failed to analyze fixture save");
+    let merlin = &full.merlin;
+
+    assert_eq!(merlin.achievement_id, "PFA_37");
+    assert_eq!(merlin.total_trials, 95);
+    assert_eq!(merlin.completed_trials, EXPECTED_COMPLETED_TRIALS);
+    assert!(merlin.tracked, "PFA_37 row should exist");
+
+    // Count-based: no roster to validate, just the counter and progress.
+    assert_eq!(
+        merlin.progress_percent,
+        (EXPECTED_COMPLETED_TRIALS as f32 / 95.0) * 100.0
     );
 }

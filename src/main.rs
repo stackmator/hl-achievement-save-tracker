@@ -1,7 +1,7 @@
 use clap::Parser;
 use hl_save_tracker::{
-    analyze_all, AchievementStatus, BeastAchievementStatus, PlantAchievementStatus,
-    PotionAchievementStatus,
+    analyze_all, AchievementStatus, BeastAchievementStatus, MerlinAchievementStatus,
+    PlantAchievementStatus, PotionAchievementStatus,
 };
 use std::fs::File;
 use std::io::{self, Write};
@@ -30,7 +30,7 @@ struct Args {
     #[arg(long)]
     json: bool,
 
-    /// Which achievements to report: both, enemies, beasts, plants, or potions
+    /// Which achievements to report: both, enemies, beasts, plants, potions, or merlin trials
     #[arg(long, value_enum, default_value_t = Report::Both)]
     report: Report,
 
@@ -47,6 +47,7 @@ enum Report {
     Beasts,
     Plants,
     Potions,
+    Merlin,
 }
 
 #[derive(Debug, clap::ValueEnum, Clone, Default)]
@@ -165,14 +166,6 @@ fn output_status<W: Write>(
         }
     }
     Ok(())
-}
-
-#[derive(Debug, serde::Serialize)]
-struct FullReport {
-    enemies: AchievementStatus,
-    beasts: BeastAchievementStatus,
-    plants: PlantAchievementStatus,
-    potions: PotionAchievementStatus,
 }
 
 fn output_plant_status<W: Write>(
@@ -403,6 +396,63 @@ fn output_potion_status<W: Write>(
     Ok(())
 }
 
+fn output_merlin_status<W: Write>(
+    w: &mut W,
+    status: &MerlinAchievementStatus,
+    format: &OutputFormat,
+) -> anyhow::Result<()> {
+    match format {
+        OutputFormat::Json => {
+            writeln!(w, "{}", serde_json::to_string_pretty(status)?)?;
+        }
+        OutputFormat::Csv => {
+            writeln!(w, "id,name,completed,total")?;
+            writeln!(
+                w,
+                "{},{},{},{}",
+                status.achievement_id,
+                status.achievement_name,
+                status.completed_trials,
+                status.total_trials
+            )?;
+        }
+        OutputFormat::Table => {
+            writeln!(
+                w,
+                "\n=== {} ({}) ===",
+                status.achievement_name, status.achievement_id
+            )?;
+            writeln!(
+                w,
+                "Progress: {}/{} ({:.1}%)",
+                status.completed_trials, status.total_trials, status.progress_percent
+            )?;
+            writeln!(w)?;
+
+            if !status.tracked {
+                writeln!(
+                    w,
+                    "NOTE: this save has no {} tracking data yet (no Merlin trials started).",
+                    status.achievement_id
+                )?;
+            }
+
+            writeln!(
+                w,
+                "\nCompleted: {}/{} Merlin Trials ({:.1}%)",
+                status.completed_trials, status.total_trials, status.progress_percent
+            )?;
+            writeln!(
+                w,
+                "\nThe save records only the completion count (not individual trials), so the {} remaining trials are not listed individually.",
+                status.total_trials.saturating_sub(status.completed_trials)
+            )?;
+            writeln!(w, "\nTotal of 95 Merlin Trials across the Highlands; count matches ACK_CompleteAll_MerlinTrials.")?;
+        }
+    }
+    Ok(())
+}
+
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
@@ -416,7 +466,7 @@ fn main() -> anyhow::Result<()> {
     writeln!(out)?;
 
     writeln!(out, "Processing save file: {:?}", args.save)?;
-    let (status, beasts, plants, potions) = analyze_all(&args.save)?;
+    let full = analyze_all(&args.save)?;
 
     let format = if args.json {
         OutputFormat::Json
@@ -427,30 +477,24 @@ fn main() -> anyhow::Result<()> {
 
     if args.report == Report::Both {
         if json_format {
-            writeln!(
-                out,
-                "{}",
-                serde_json::to_string_pretty(&FullReport {
-                    enemies: status,
-                    beasts,
-                    plants,
-                    potions
-                })?
-            )?;
+            writeln!(out, "{}", serde_json::to_string_pretty(&full)?)?;
         } else {
-            output_status(&mut out, &status, &format, args.missing_only)?;
-            output_beast_status(&mut out, &beasts, &format)?;
-            output_plant_status(&mut out, &plants, &format)?;
-            output_potion_status(&mut out, &potions, &format)?;
+            output_status(&mut out, &full.enemies, &format, args.missing_only)?;
+            output_beast_status(&mut out, &full.beasts, &format)?;
+            output_plant_status(&mut out, &full.plants, &format)?;
+            output_potion_status(&mut out, &full.potions, &format)?;
+            output_merlin_status(&mut out, &full.merlin, &format)?;
         }
     } else if args.report == Report::Enemies {
-        output_status(&mut out, &status, &format, args.missing_only)?;
+        output_status(&mut out, &full.enemies, &format, args.missing_only)?;
     } else if args.report == Report::Beasts {
-        output_beast_status(&mut out, &beasts, &format)?;
+        output_beast_status(&mut out, &full.beasts, &format)?;
     } else if args.report == Report::Plants {
-        output_plant_status(&mut out, &plants, &format)?;
+        output_plant_status(&mut out, &full.plants, &format)?;
+    } else if args.report == Report::Potions {
+        output_potion_status(&mut out, &full.potions, &format)?;
     } else {
-        output_potion_status(&mut out, &potions, &format)?;
+        output_merlin_status(&mut out, &full.merlin, &format)?;
     }
 
     Ok(())

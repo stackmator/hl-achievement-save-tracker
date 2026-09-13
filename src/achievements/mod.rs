@@ -3,6 +3,7 @@ use std::collections::HashSet;
 
 pub mod finishing_touches;
 pub mod going_through_the_potions;
+pub mod merlins_beard;
 pub mod nature_of_the_beast;
 pub mod put_down_roots;
 
@@ -13,6 +14,9 @@ pub use finishing_touches::{
 pub use going_through_the_potions::{
     load_potion_status, PotionAchievementStatus, PotionStatus, PotionType, PFA_27_ID, PFA_27_NAME,
     PFA_27_REQUIRED, POTION_TYPES,
+};
+pub use merlins_beard::{
+    load_merlin_status, MerlinAchievementStatus, PFA_37_ID, PFA_37_NAME, PFA_37_REQUIRED,
 };
 pub use nature_of_the_beast::{
     load_beast_status, BeastAchievementStatus, BeastStatus, BeastType, BEAST_TYPES, PFA_26_ID,

@@ -22,6 +22,9 @@ pub use achievements::going_through_the_potions::{
     load_potion_status, PotionAchievementStatus, PotionStatus, PotionType, PFA_27_ID, PFA_27_NAME,
     PFA_27_REQUIRED, POTION_TYPES,
 };
+pub use achievements::merlins_beard::{
+    load_merlin_status, MerlinAchievementStatus, PFA_37_ID, PFA_37_NAME, PFA_37_REQUIRED,
+};
 pub use achievements::nature_of_the_beast::{
     load_beast_status, BeastAchievementStatus, BeastStatus, BeastType, BEAST_TYPES, PFA_26_ID,
     PFA_26_NAME, PFA_26_REQUIRED,
@@ -223,34 +226,30 @@ pub fn analyze_save_with_db<S: AsRef<Path>>(
     achievements::finishing_touches::load_status(&conn)
 }
 
+/// Progress across every supported achievement.
+#[derive(Debug, serde::Serialize)]
+pub struct GameStatus {
+    pub enemies: AchievementStatus,
+    pub beasts: BeastAchievementStatus,
+    pub plants: PlantAchievementStatus,
+    pub potions: PotionAchievementStatus,
+    pub merlin: MerlinAchievementStatus,
+}
+
 /// Extracts the DB once and reports progress for all supported achievements.
-pub fn analyze_all(
-    path: &Path,
-) -> anyhow::Result<(
-    AchievementStatus,
-    BeastAchievementStatus,
-    PlantAchievementStatus,
-    PotionAchievementStatus,
-)> {
+pub fn analyze_all(path: &Path) -> anyhow::Result<GameStatus> {
     let conn = open_save_db(path)?;
-    Ok((
-        achievements::finishing_touches::load_status(&conn)?,
-        achievements::nature_of_the_beast::load_beast_status(&conn)?,
-        achievements::put_down_roots::load_plant_status(&conn)?,
-        achievements::going_through_the_potions::load_potion_status(&conn)?,
-    ))
+    Ok(GameStatus {
+        enemies: achievements::finishing_touches::load_status(&conn)?,
+        beasts: achievements::nature_of_the_beast::load_beast_status(&conn)?,
+        plants: achievements::put_down_roots::load_plant_status(&conn)?,
+        potions: achievements::going_through_the_potions::load_potion_status(&conn)?,
+        merlin: achievements::merlins_beard::load_merlin_status(&conn)?,
+    })
 }
 
 /// Like [`analyze_all`] but with a caller-chosen temp db path (used by tests).
-pub fn analyze_all_with_db<S: AsRef<Path>>(
-    path: &Path,
-    db_path: S,
-) -> anyhow::Result<(
-    AchievementStatus,
-    BeastAchievementStatus,
-    PlantAchievementStatus,
-    PotionAchievementStatus,
-)> {
+pub fn analyze_all_with_db<S: AsRef<Path>>(path: &Path, db_path: S) -> anyhow::Result<GameStatus> {
     let data = fs::read(path)?;
     if !data.starts_with(b"GVAS") {
         anyhow::bail!("Not a GVAS file");
@@ -263,12 +262,13 @@ pub fn analyze_all_with_db<S: AsRef<Path>>(
     fs::write(db_path, &db_data)?;
     let conn = Connection::open(db_path)?;
 
-    Ok((
-        achievements::finishing_touches::load_status(&conn)?,
-        achievements::nature_of_the_beast::load_beast_status(&conn)?,
-        achievements::put_down_roots::load_plant_status(&conn)?,
-        achievements::going_through_the_potions::load_potion_status(&conn)?,
-    ))
+    Ok(GameStatus {
+        enemies: achievements::finishing_touches::load_status(&conn)?,
+        beasts: achievements::nature_of_the_beast::load_beast_status(&conn)?,
+        plants: achievements::put_down_roots::load_plant_status(&conn)?,
+        potions: achievements::going_through_the_potions::load_potion_status(&conn)?,
+        merlin: achievements::merlins_beard::load_merlin_status(&conn)?,
+    })
 }
 
 fn open_save_db(path: &Path) -> anyhow::Result<Connection> {

@@ -53,6 +53,11 @@ Progress: 5/6 (83.3%)
   ❌ Invisibility Potion
 
 Brewed: 5/6 potions (83.3%)
+
+=== Merlin's Beard! ===
+Progress: 29/95 (30.5%)
+
+Completed: 29/95 Merlin Trials (30.5%)
 ```
 
 Unlike guide-based estimators, this tool reads the **actual tracking data from your save**, so the count and per-enemy list reflect exactly what the game recorded.
@@ -75,6 +80,10 @@ Grow each of the **8** types of plant in the Room of Requirement (Dittany, Fluxw
 
 Brew each of the **6** types of potion (Wiggenweld, Edurus, Maxima, Focus, Invisibility, Thunderbrew). Reports your brewed count (e.g. `5/6`) and flags any surprise pool entries.
 
+### Merlin's Beard!
+
+Complete all **95** Merlin Trials. The save records only the total completed count, so the tracker reports your progress (`29/95`); individual trials aren't tracked in the save data.
+
 ## Build
 
 ```powershell
@@ -95,7 +104,7 @@ hl-save-tracker.exe --save "C:\Users\<you>\AppData\Local\Hogwarts Legacy\Saved\S
 | `-s, --save <PATH>` | Path to a `.sav` file (**required**) |
 | `-f, --format <fmt>` | Output: `table` (default), `json`, `csv` |
 | `--missing-only` | Show only the enemy types still needed |
-| `--report <which>` | Which achievements: `both` (default), `enemies`, `beasts`, `plants`, `potions` |
+| `--report <which>` | Which achievements: `both` (default), `enemies`, `beasts`, `plants`, `potions`, `merlin` |
 | `--json` | Shorthand for `--format json` |
 | `-o, --out <PATH>` | Write the report to a file instead of stdout |
 
@@ -121,7 +130,7 @@ Saves live in `%LOCALAPPDATA%\Hogwarts Legacy\Saved\SaveGames\<SteamID>\`. The f
 
 - `src/main.rs` — the tracker CLI (save parsing, decompression, SQLite, reporting)
 - `src/lib.rs` — save → SQLite extraction pipeline and the public analysis API
-- `src/achievements/` — one module per supported achievement (`finishing_touches.rs`, `nature_of_the_beast.rs`, `put_down_roots.rs`)
+- `src/achievements/` — one module per supported achievement (`finishing_touches.rs`, `nature_of_the_beast.rs`, `put_down_roots.rs`, `going_through_the_potions.rs`, `merlins_beard.rs`)
 - `src/bin/decompile_exe.rs` — a small research helper used while reverse-engineering the save format (not part of the tracker itself)
 - `src/bin/sanitize_save.rs` — scrubs identity data (character name / UID) from a save to produce a commit-safe test fixture
 
