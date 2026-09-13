@@ -1,12 +1,17 @@
 use rusqlite::{Connection, OptionalExtension};
 use std::collections::HashSet;
 
+pub mod collectors_edition;
 pub mod finishing_touches;
 pub mod going_through_the_potions;
 pub mod merlins_beard;
 pub mod nature_of_the_beast;
 pub mod put_down_roots;
 
+pub use collectors_edition::{
+    load_collectors_status, CollectionCategory, CollectionCategoryStatus, CollectorsEditionStatus,
+    COLLECTION_CATEGORIES, COLLECTORS_EDITION_ID, COLLECTORS_EDITION_NAME,
+};
 pub use finishing_touches::{
     load_status, AchievementStatus, EnemyStatus, EnemyType, ENEMY_TYPES, PFA_43_ID, PFA_43_NAME,
     PFA_43_REQUIRED,

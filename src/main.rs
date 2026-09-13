@@ -1,7 +1,7 @@
 use clap::Parser;
 use hl_save_tracker::{
-    analyze_all, AchievementStatus, BeastAchievementStatus, MerlinAchievementStatus,
-    PlantAchievementStatus, PotionAchievementStatus,
+    analyze_all, AchievementStatus, BeastAchievementStatus, CollectorsEditionStatus,
+    MerlinAchievementStatus, PlantAchievementStatus, PotionAchievementStatus,
 };
 use std::fs::File;
 use std::io::{self, Write};
@@ -30,7 +30,7 @@ struct Args {
     #[arg(long)]
     json: bool,
 
-    /// Which achievements to report: both, enemies, beasts, plants, potions, or merlin trials
+    /// Which achievements to report: both, enemies, beasts, plants, potions, merlin trials, or collections
     #[arg(long, value_enum, default_value_t = Report::Both)]
     report: Report,
 
@@ -48,6 +48,7 @@ enum Report {
     Plants,
     Potions,
     Merlin,
+    Collectors,
 }
 
 #[derive(Debug, clap::ValueEnum, Clone, Default)]
@@ -453,6 +454,70 @@ fn output_merlin_status<W: Write>(
     Ok(())
 }
 
+fn output_collectors_status<W: Write>(
+    w: &mut W,
+    status: &CollectorsEditionStatus,
+    format: &OutputFormat,
+) -> anyhow::Result<()> {
+    match format {
+        OutputFormat::Json => {
+            writeln!(w, "{}", serde_json::to_string_pretty(status)?)?;
+        }
+        OutputFormat::Csv => {
+            writeln!(w, "category,obtained,total")?;
+            for c in &status.categories {
+                writeln!(w, "{},{},{}", c.id, c.obtained, c.total)?;
+            }
+        }
+        OutputFormat::Table => {
+            writeln!(
+                w,
+                "\n=== {} ({}) ===",
+                status.achievement_name, status.achievement_id
+            )?;
+            writeln!(
+                w,
+                "Progress: {}/{} ({:.1}%)",
+                status.total_collected, status.total_items, status.progress_percent
+            )?;
+            writeln!(w)?;
+
+            for c in &status.categories {
+                let icon = if c.obtained >= c.total { "✅" } else { "❌" };
+                let pct = if c.total == 0 {
+                    0.0
+                } else {
+                    (c.obtained as f32 / c.total as f32) * 100.0
+                };
+                writeln!(
+                    w,
+                    "  {} {:<14} {}/{} ({:.1}%)",
+                    icon, c.name, c.obtained, c.total, pct
+                )?;
+            }
+
+            if status.complete {
+                writeln!(w, "\nCollector's Edition COMPLETE!")?;
+            } else {
+                writeln!(
+                    w,
+                    "\nCollected: {}/{} items ({:.1}%)",
+                    status.total_collected, status.total_items, status.progress_percent
+                )?;
+            }
+            writeln!(
+                w,
+                "\nCounts are distinct items with an Obtained ledger entry (CollectionDynamic),"
+            )?;
+            writeln!(
+                w,
+                "and totals are the save's own collection rosters (DLC-era saves may show smaller totals)."
+            )?;
+        }
+    }
+    Ok(())
+}
+
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
@@ -484,6 +549,7 @@ fn main() -> anyhow::Result<()> {
             output_plant_status(&mut out, &full.plants, &format)?;
             output_potion_status(&mut out, &full.potions, &format)?;
             output_merlin_status(&mut out, &full.merlin, &format)?;
+            output_collectors_status(&mut out, &full.collectors, &format)?;
         }
     } else if args.report == Report::Enemies {
         output_status(&mut out, &full.enemies, &format, args.missing_only)?;
@@ -493,8 +559,10 @@ fn main() -> anyhow::Result<()> {
         output_plant_status(&mut out, &full.plants, &format)?;
     } else if args.report == Report::Potions {
         output_potion_status(&mut out, &full.potions, &format)?;
-    } else {
+    } else if args.report == Report::Merlin {
         output_merlin_status(&mut out, &full.merlin, &format)?;
+    } else {
+        output_collectors_status(&mut out, &full.collectors, &format)?;
     }
 
     Ok(())

@@ -58,6 +58,22 @@ Brewed: 5/6 potions (83.3%)
 Progress: 29/95 (30.5%)
 
 Completed: 29/95 Merlin Trials (30.5%)
+
+=== Collector's Edition ===
+Progress: 571/633 (90.2%)
+
+  ✅ Beasts         13/13 (100.0%)
+  ✅ Brooms         15/15 (100.0%)
+  ❌ Conjurations   119/140 (85.0%)
+  ❌ Enemies        64/69 (92.8%)
+  ✅ Exploration    150/150 (100.0%)
+  ❌ Gear           93/103 (90.3%)
+  ✅ Potions        10/10 (100.0%)
+  ✅ Seeds          16/16 (100.0%)
+  ❌ Traits         49/75 (65.3%)
+  ✅ Wand Handles   42/42 (100.0%)
+
+Collected: 571/633 items (90.2%)
 ```
 
 Unlike guide-based estimators, this tool reads the **actual tracking data from your save**, so the count and per-enemy list reflect exactly what the game recorded.
@@ -84,6 +100,10 @@ Brew each of the **6** types of potion (Wiggenweld, Edurus, Maxima, Focus, Invis
 
 Complete all **95** Merlin Trials. The save records only the total completed count, so the tracker reports your progress (`29/95`); individual trials aren't tracked in the save data.
 
+### Collector's Edition
+
+Obtain every item in all **10** collection categories (Conjurations, Enemies, Exploration, Gear, Traits, Wand Handles, plus Beasts, Brooms, Potions, Seeds). Unlike the other achievements this is tracked through the save's `CollectionDynamic` event ledger rather than a single counter, so the tracker counts **distinct items** that have an "Obtained" entry per category (potions can rack up dozens of duplicate pickup rows) and reports a table of every category. Totals come from the save's own collection roster, so DLC-era saves show slightly larger totals than earlier builds (e.g. Gear 103 vs 97).
+
 ## Build
 
 ```powershell
@@ -104,7 +124,7 @@ hl-save-tracker.exe --save "C:\Users\<you>\AppData\Local\Hogwarts Legacy\Saved\S
 | `-s, --save <PATH>` | Path to a `.sav` file (**required**) |
 | `-f, --format <fmt>` | Output: `table` (default), `json`, `csv` |
 | `--missing-only` | Show only the enemy types still needed |
-| `--report <which>` | Which achievements: `both` (default), `enemies`, `beasts`, `plants`, `potions`, `merlin` |
+| `--report <which>` | Which achievements: `both` (default), `enemies`, `beasts`, `plants`, `potions`, `merlin`, `collectors` |
 | `--json` | Shorthand for `--format json` |
 | `-o, --out <PATH>` | Write the report to a file instead of stdout |
 
@@ -120,6 +140,9 @@ hl-save-tracker.exe -s "…\HL-00-00.sav" --missing-only --json
 # CSV of everything
 hl-save-tracker.exe -s "…\HL-00-00.sav" -f csv
 
+# Just the collections progress (per-category table)
+hl-save-tracker.exe -s "…\HL-00-00.sav" --report collectors
+
 # Write the report to a file instead of stdout
 hl-save-tracker.exe -s "…\HL-00-00.sav" -o report.txt
 ```
@@ -130,7 +153,7 @@ Saves live in `%LOCALAPPDATA%\Hogwarts Legacy\Saved\SaveGames\<SteamID>\`. The f
 
 - `src/main.rs` — the tracker CLI (save parsing, decompression, SQLite, reporting)
 - `src/lib.rs` — save → SQLite extraction pipeline and the public analysis API
-- `src/achievements/` — one module per supported achievement (`finishing_touches.rs`, `nature_of_the_beast.rs`, `put_down_roots.rs`, `going_through_the_potions.rs`, `merlins_beard.rs`)
+- `src/achievements/` — one module per supported achievement (`finishing_touches.rs`, `nature_of_the_beast.rs`, `put_down_roots.rs`, `going_through_the_potions.rs`, `merlins_beard.rs`, `collectors_edition.rs`)
 - `src/bin/decompile_exe.rs` — a small research helper used while reverse-engineering the save format (not part of the tracker itself)
 - `src/bin/sanitize_save.rs` — scrubs identity data (character name / UID) from a save to produce a commit-safe test fixture
 

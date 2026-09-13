@@ -14,6 +14,10 @@ use std::path::Path;
 
 pub mod achievements;
 
+pub use achievements::collectors_edition::{
+    load_collectors_status, CollectionCategory, CollectionCategoryStatus, CollectorsEditionStatus,
+    COLLECTION_CATEGORIES, COLLECTORS_EDITION_ID, COLLECTORS_EDITION_NAME,
+};
 pub use achievements::finishing_touches::{
     load_status, AchievementStatus, EnemyStatus, EnemyType, ENEMY_TYPES, PFA_43_ID, PFA_43_NAME,
     PFA_43_REQUIRED,
@@ -234,6 +238,7 @@ pub struct GameStatus {
     pub plants: PlantAchievementStatus,
     pub potions: PotionAchievementStatus,
     pub merlin: MerlinAchievementStatus,
+    pub collectors: CollectorsEditionStatus,
 }
 
 /// Extracts the DB once and reports progress for all supported achievements.
@@ -245,6 +250,7 @@ pub fn analyze_all(path: &Path) -> anyhow::Result<GameStatus> {
         plants: achievements::put_down_roots::load_plant_status(&conn)?,
         potions: achievements::going_through_the_potions::load_potion_status(&conn)?,
         merlin: achievements::merlins_beard::load_merlin_status(&conn)?,
+        collectors: achievements::collectors_edition::load_collectors_status(&conn)?,
     })
 }
 
@@ -268,6 +274,7 @@ pub fn analyze_all_with_db<S: AsRef<Path>>(path: &Path, db_path: S) -> anyhow::R
         plants: achievements::put_down_roots::load_plant_status(&conn)?,
         potions: achievements::going_through_the_potions::load_potion_status(&conn)?,
         merlin: achievements::merlins_beard::load_merlin_status(&conn)?,
+        collectors: achievements::collectors_edition::load_collectors_status(&conn)?,
     })
 }
 

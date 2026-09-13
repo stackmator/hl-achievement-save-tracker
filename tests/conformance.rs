@@ -57,6 +57,11 @@ const EXPECTED_MISSING_POTIONS: [&str; 1] = ["InvisibilityPotion"];
 /// Trials completed.
 const EXPECTED_COMPLETED_TRIALS: usize = 29;
 
+/// "Collector's Edition" values captured from HL-00-00.sav (full DLC-era
+/// roster): 571 of 633 collection items obtained across the 10 categories.
+const EXPECTED_COLLECTED_ITEMS: usize = 571;
+const EXPECTED_TOTAL_ITEMS: usize = 633;
+
 fn fixture_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(FIXTURE)
 }
@@ -264,5 +269,60 @@ fn conformance_merlins_beard() {
     assert_eq!(
         merlin.progress_percent,
         (EXPECTED_COMPLETED_TRIALS as f32 / 95.0) * 100.0
+    );
+}
+
+#[test]
+fn conformance_collectors_edition() {
+    let full = analyze_all_with_db(
+        &fixture_path(),
+        std::env::temp_dir().join("hl_collectors_test.db"),
+    )
+    .expect("failed to analyze fixture save");
+    let collectors = &full.collectors;
+
+    assert_eq!(collectors.achievement_id, "Collection");
+    assert_eq!(collectors.achievement_name, "Collector's Edition");
+    assert!(collectors.tracked, "CollectionDynamic table should exist");
+    assert_eq!(collectors.total_items, EXPECTED_TOTAL_ITEMS);
+    assert_eq!(collectors.total_collected, EXPECTED_COLLECTED_ITEMS);
+    assert!(!collectors.complete, "fixture is not a completed collection");
+    assert_eq!(
+        collectors.progress_percent,
+        (EXPECTED_COLLECTED_ITEMS as f32 / EXPECTED_TOTAL_ITEMS as f32) * 100.0
+    );
+
+    // The 10 known categories, each with a sane per-category tally.
+    assert_eq!(collectors.categories.len(), 10);
+    let by_id = |id: &str| {
+        collectors
+            .categories
+            .iter()
+            .find(|c| c.id == id)
+            .unwrap_or_else(|| panic!("missing category {id}"))
+    };
+    assert_eq!(by_id("Conjurations").obtained, 119);
+    assert_eq!(by_id("Conjurations").total, 140);
+    assert_eq!(by_id("Enemies").obtained, 64);
+    assert_eq!(by_id("Enemies").total, 69);
+    assert_eq!(by_id("Traits").obtained, 49);
+    assert_eq!(by_id("Traits").total, 75);
+
+    // Fully obtained categories stay complete and sum exactly to the totals.
+    for id in ["Beasts", "Brooms", "Exploration", "Potions", "Seeds", "WandStyle"] {
+        let c = by_id(id);
+        assert!(c.obtained >= c.total, "{id} should be complete: {c:?}");
+    }
+    assert_eq!(
+        collectors
+            .categories
+            .iter()
+            .map(|c| c.obtained)
+            .sum::<usize>(),
+        EXPECTED_COLLECTED_ITEMS
+    );
+    assert_eq!(
+        collectors.categories.iter().map(|c| c.total).sum::<usize>(),
+        EXPECTED_TOTAL_ITEMS
     );
 }
