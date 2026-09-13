@@ -24,6 +24,10 @@ Unlike guide-based estimators, this tool reads the **actual tracking data from y
 
 Land an Ancient Magic finisher on each of the **34** eligible enemy types ("Finish Strong" on some platforms). The tracker reports your completed count (e.g. `28/34`) and lists which enemy classes are done and which are still needed.
 
+### The Nature of the Beast
+
+Breed each of the **12** breedable beast species (phoenixes don't count). The tracker reads the same `OneOfEach` registration data the game records per species, reporting your bred count (e.g. `5/12`) and flagging any surprise pool entries.
+
 ## Build
 
 ```powershell
@@ -44,6 +48,7 @@ hl-save-tracker.exe --save "C:\Users\<you>\AppData\Local\Hogwarts Legacy\Saved\S
 | `-s, --save <PATH>` | Path to a `.sav` file (**required**) |
 | `-f, --format <fmt>` | Output: `table` (default), `json`, `csv` |
 | `--missing-only` | Show only the enemy types still needed |
+| `--report <which>` | Which achievements: `both` (default), `enemies`, `beasts` |
 | `--json` | Shorthand for `--format json` |
 
 ### Examples
@@ -64,7 +69,10 @@ Saves live in `%LOCALAPPDATA%\Hogwarts Legacy\Saved\SaveGames\<SteamID>\`. The f
 ## Project layout
 
 - `src/main.rs` — the tracker CLI (save parsing, decompression, SQLite, reporting)
+- `src/lib.rs` — save → SQLite extraction pipeline and the public analysis API
+- `src/achievements/` — one module per supported achievement (`finishing_touches.rs`, `nature_of_the_beast.rs`)
 - `src/bin/decompile_exe.rs` — a small research helper used while reverse-engineering the save format (not part of the tracker itself)
+- `src/bin/sanitize_save.rs` — scrubs identity data (character name / UID) from a save to produce a commit-safe test fixture
 
 ## Disclaimer
 
