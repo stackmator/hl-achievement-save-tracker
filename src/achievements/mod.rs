@@ -2,12 +2,17 @@ use rusqlite::{Connection, OptionalExtension};
 use std::collections::HashSet;
 
 pub mod finishing_touches;
+pub mod going_through_the_potions;
 pub mod nature_of_the_beast;
 pub mod put_down_roots;
 
 pub use finishing_touches::{
     load_status, AchievementStatus, EnemyStatus, EnemyType, ENEMY_TYPES, PFA_43_ID, PFA_43_NAME,
     PFA_43_REQUIRED,
+};
+pub use going_through_the_potions::{
+    load_potion_status, PotionAchievementStatus, PotionStatus, PotionType, PFA_27_ID, PFA_27_NAME,
+    PFA_27_REQUIRED, POTION_TYPES,
 };
 pub use nature_of_the_beast::{
     load_beast_status, BeastAchievementStatus, BeastStatus, BeastType, BEAST_TYPES, PFA_26_ID,

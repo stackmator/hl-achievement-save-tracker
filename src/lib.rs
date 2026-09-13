@@ -18,6 +18,10 @@ pub use achievements::finishing_touches::{
     load_status, AchievementStatus, EnemyStatus, EnemyType, ENEMY_TYPES, PFA_43_ID, PFA_43_NAME,
     PFA_43_REQUIRED,
 };
+pub use achievements::going_through_the_potions::{
+    load_potion_status, PotionAchievementStatus, PotionStatus, PotionType, PFA_27_ID, PFA_27_NAME,
+    PFA_27_REQUIRED, POTION_TYPES,
+};
 pub use achievements::nature_of_the_beast::{
     load_beast_status, BeastAchievementStatus, BeastStatus, BeastType, BEAST_TYPES, PFA_26_ID,
     PFA_26_NAME, PFA_26_REQUIRED,
@@ -226,12 +230,14 @@ pub fn analyze_all(
     AchievementStatus,
     BeastAchievementStatus,
     PlantAchievementStatus,
+    PotionAchievementStatus,
 )> {
     let conn = open_save_db(path)?;
     Ok((
         achievements::finishing_touches::load_status(&conn)?,
         achievements::nature_of_the_beast::load_beast_status(&conn)?,
         achievements::put_down_roots::load_plant_status(&conn)?,
+        achievements::going_through_the_potions::load_potion_status(&conn)?,
     ))
 }
 
@@ -243,6 +249,7 @@ pub fn analyze_all_with_db<S: AsRef<Path>>(
     AchievementStatus,
     BeastAchievementStatus,
     PlantAchievementStatus,
+    PotionAchievementStatus,
 )> {
     let data = fs::read(path)?;
     if !data.starts_with(b"GVAS") {
@@ -260,6 +267,7 @@ pub fn analyze_all_with_db<S: AsRef<Path>>(
         achievements::finishing_touches::load_status(&conn)?,
         achievements::nature_of_the_beast::load_beast_status(&conn)?,
         achievements::put_down_roots::load_plant_status(&conn)?,
+        achievements::going_through_the_potions::load_potion_status(&conn)?,
     ))
 }
 

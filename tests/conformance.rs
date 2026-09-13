@@ -45,6 +45,14 @@ const ORIG_UID: &str = "7FC50D4642F86FBD0AF90C886DFDACCD";
 const EXPECTED_GROWN_PLANTS: usize = 6;
 const EXPECTED_MISSING_PLANTS: [&str; 2] = ["Knotgrass", "VenomousTentacula"];
 
+/// "Going Through the Potions" values captured from HL-00-00.sav:
+/// 5 of 6 potions brewed (Edurus, Maxima, WoundCleaning/Wiggenweld,
+/// AMFillPotion/Focus, AutoDamagePotion/Thunderbrew), none outside the
+/// 6-potion roster. Invisibility was consumed once but never brewed, so it
+/// is missing from the PFA_27 pool.
+const EXPECTED_BREWED_POTIONS: usize = 5;
+const EXPECTED_MISSING_POTIONS: [&str; 1] = ["InvisibilityPotion"];
+
 fn fixture_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(FIXTURE)
 }
@@ -113,7 +121,7 @@ fn conformance_against_real_save_data() {
 
 #[test]
 fn conformance_nature_of_the_beast() {
-    let (_, beasts, _) = analyze_all_with_db(
+    let (_, beasts, _, _) = analyze_all_with_db(
         &fixture_path(),
         std::env::temp_dir().join("hl_beast_test.db"),
     )
@@ -153,7 +161,7 @@ fn conformance_nature_of_the_beast() {
 
 #[test]
 fn conformance_put_down_roots() {
-    let (_, _, plants) = analyze_all_with_db(
+    let (_, _, plants, _) = analyze_all_with_db(
         &fixture_path(),
         std::env::temp_dir().join("hl_plant_test.db"),
     )
@@ -188,5 +196,45 @@ fn conformance_put_down_roots() {
     assert_eq!(
         got_missing, expected_missing,
         "missing plants diverged from golden values"
+    );
+}
+
+#[test]
+fn conformance_going_through_the_potions() {
+    let (_, _, _, potions) = analyze_all_with_db(
+        &fixture_path(),
+        std::env::temp_dir().join("hl_potion_test.db"),
+    )
+    .expect("failed to analyze fixture save");
+
+    assert_eq!(potions.achievement_id, "PFA_27");
+    assert_eq!(potions.total_potions, 6);
+    assert_eq!(potions.brewed_potions, EXPECTED_BREWED_POTIONS);
+
+    // Same roster invariant: pool size == Instances.
+    assert_eq!(
+        potions.brewed_potions_list.len(),
+        potions.brewed_potions,
+        "squeeze detected: registered potions != Instances"
+    );
+    assert!(
+        potions.squeeze_indicator.is_none(),
+        "unexpected squeeze indicator"
+    );
+    assert!(
+        potions.pool_not_whitelist.is_empty(),
+        "registered potions outside the 6-roster: {:?}",
+        potions.pool_not_whitelist
+    );
+
+    let got_missing: HashSet<&str> = potions
+        .missing_potions
+        .iter()
+        .map(|p| p.id.as_str())
+        .collect();
+    let expected_missing: HashSet<&str> = EXPECTED_MISSING_POTIONS.iter().copied().collect();
+    assert_eq!(
+        got_missing, expected_missing,
+        "missing potions diverged from golden values"
     );
 }

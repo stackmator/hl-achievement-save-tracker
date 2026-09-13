@@ -1,6 +1,7 @@
 use clap::Parser;
 use hl_save_tracker::{
     analyze_all, AchievementStatus, BeastAchievementStatus, PlantAchievementStatus,
+    PotionAchievementStatus,
 };
 use std::fs::File;
 use std::io::{self, Write};
@@ -29,7 +30,7 @@ struct Args {
     #[arg(long)]
     json: bool,
 
-    /// Which achievements to report: both, enemies, beasts, or plants
+    /// Which achievements to report: both, enemies, beasts, plants, or potions
     #[arg(long, value_enum, default_value_t = Report::Both)]
     report: Report,
 
@@ -45,6 +46,7 @@ enum Report {
     Enemies,
     Beasts,
     Plants,
+    Potions,
 }
 
 #[derive(Debug, clap::ValueEnum, Clone, Default)]
@@ -170,6 +172,7 @@ struct FullReport {
     enemies: AchievementStatus,
     beasts: BeastAchievementStatus,
     plants: PlantAchievementStatus,
+    potions: PotionAchievementStatus,
 }
 
 fn output_plant_status<W: Write>(
@@ -322,6 +325,84 @@ fn output_beast_status<W: Write>(
     Ok(())
 }
 
+fn output_potion_status<W: Write>(
+    w: &mut W,
+    status: &PotionAchievementStatus,
+    format: &OutputFormat,
+) -> anyhow::Result<()> {
+    match format {
+        OutputFormat::Json => {
+            writeln!(w, "{}", serde_json::to_string_pretty(status)?)?;
+        }
+        OutputFormat::Csv => {
+            writeln!(w, "id,name,brewed")?;
+            for p in status
+                .brewed_potions_list
+                .iter()
+                .chain(status.missing_potions.iter())
+            {
+                writeln!(w, "{},{},{}", p.id, p.name, p.brewed)?;
+            }
+        }
+        OutputFormat::Table => {
+            writeln!(
+                w,
+                "\n=== {} ({}) ===",
+                status.achievement_name, status.achievement_id
+            )?;
+            writeln!(
+                w,
+                "Progress: {}/{} ({:.1}%)",
+                status.brewed_potions, status.total_potions, status.progress_percent
+            )?;
+            writeln!(w)?;
+
+            if !status.tracked {
+                writeln!(
+                    w,
+                    "NOTE: this save has no {} tracking data yet (brewing not started). The full roster is shown as not started.",
+                    status.achievement_id
+                )?;
+            }
+
+            for p in status
+                .brewed_potions_list
+                .iter()
+                .chain(status.missing_potions.iter())
+            {
+                let status_icon = if p.brewed { "✅" } else { "❌" };
+                writeln!(w, "  {} {}", status_icon, p.name)?;
+            }
+
+            writeln!(
+                w,
+                "\nBrewed: {}/{} potions ({:.1}%)",
+                status.brewed_potions, status.total_potions, status.progress_percent
+            )?;
+
+            if !status.pool_not_whitelist.is_empty() {
+                writeln!(
+                    w,
+                    "\nRegistered in pool but NOT in the 6-potion list: {}",
+                    status.pool_not_whitelist.join(", ")
+                )?;
+            }
+            if let Some(sq) = &status.squeeze_indicator {
+                writeln!(w, "\nNOTE: {}", sq)?;
+            }
+            writeln!(
+                w,
+                "\nRoster derived from the save's PFA_27 OneOfEach pool (recipe IDs; e.g. Wiggenweld is recorded as WoundCleaning)."
+            )?;
+            writeln!(
+                w,
+                "(6 brewable potions; Focus is recorded as AMFillPotion and Thunderbrew as AutoDamagePotion)."
+            )?;
+        }
+    }
+    Ok(())
+}
+
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
@@ -335,7 +416,7 @@ fn main() -> anyhow::Result<()> {
     writeln!(out)?;
 
     writeln!(out, "Processing save file: {:?}", args.save)?;
-    let (status, beasts, plants) = analyze_all(&args.save)?;
+    let (status, beasts, plants, potions) = analyze_all(&args.save)?;
 
     let format = if args.json {
         OutputFormat::Json
@@ -352,20 +433,24 @@ fn main() -> anyhow::Result<()> {
                 serde_json::to_string_pretty(&FullReport {
                     enemies: status,
                     beasts,
-                    plants
+                    plants,
+                    potions
                 })?
             )?;
         } else {
             output_status(&mut out, &status, &format, args.missing_only)?;
             output_beast_status(&mut out, &beasts, &format)?;
             output_plant_status(&mut out, &plants, &format)?;
+            output_potion_status(&mut out, &potions, &format)?;
         }
     } else if args.report == Report::Enemies {
         output_status(&mut out, &status, &format, args.missing_only)?;
     } else if args.report == Report::Beasts {
         output_beast_status(&mut out, &beasts, &format)?;
-    } else {
+    } else if args.report == Report::Plants {
         output_plant_status(&mut out, &plants, &format)?;
+    } else {
+        output_potion_status(&mut out, &potions, &format)?;
     }
 
     Ok(())

@@ -32,6 +32,10 @@ Breed each of the **12** breedable beast species (phoenixes don't count). The tr
 
 Grow each of the **8** types of plant in the Room of Requirement (Dittany, Fluxweed, Knotgrass, Mallowsweet, Mandrake, Shrivelfig, Chinese Chomping Cabbage, Venomous Tentacula). Reports your grown count (e.g. `6/8`) and flags any surprise pool entries.
 
+### Going Through the Potions
+
+Brew each of the **6** types of potion (Wiggenweld, Edurus, Maxima, Focus, Invisibility, Thunderbrew). Reports your brewed count (e.g. `5/6`) and flags any surprise pool entries.
+
 ## Build
 
 ```powershell
@@ -52,7 +56,7 @@ hl-save-tracker.exe --save "C:\Users\<you>\AppData\Local\Hogwarts Legacy\Saved\S
 | `-s, --save <PATH>` | Path to a `.sav` file (**required**) |
 | `-f, --format <fmt>` | Output: `table` (default), `json`, `csv` |
 | `--missing-only` | Show only the enemy types still needed |
-| `--report <which>` | Which achievements: `both` (default), `enemies`, `beasts`, `plants` |
+| `--report <which>` | Which achievements: `both` (default), `enemies`, `beasts`, `plants`, `potions` |
 | `--json` | Shorthand for `--format json` |
 | `-o, --out <PATH>` | Write the report to a file instead of stdout |
 
