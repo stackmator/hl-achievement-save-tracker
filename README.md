@@ -3,6 +3,11 @@
 A small Rust CLI that reads your Hogwarts Legacy save file and reports progress toward the achievements it currently supports. Everything is derived from the achievement-tracking data the game records in the save itself — no guides or guesswork.
 
 ```
+Hogwarts Legacy Save Tracker
+==============================
+
+Processing save file: "…\HL-00-00.sav"
+
 === Finishing Touches ===
 Progress: 28/34 (82.4%)
 
@@ -14,6 +19,40 @@ Progress: 28/34 (82.4%)
   ❌ Ashwinder Ranger
   ❌ Ashwinder Captain
   ...
+
+Total: 28/34 enemies completed (82.4%)
+
+=== The Nature of the Beast ===
+Progress: 5/12 (41.7%)
+
+  ✅ Diricawl
+  ✅ Puffskein
+  ✅ Thestral
+  ❌ Fwooper
+  ❌ Hippogriff
+  ...
+
+Bred: 5/12 species (41.7%)
+
+=== Put Down Roots ===
+Progress: 6/8 (75.0%)
+
+  ✅ Mandrake
+  ✅ Dittany
+  ❌ Knotgrass
+  ❌ Venomous Tentacula
+
+Grown: 6/8 plants (75.0%)
+
+=== Going Through the Potions ===
+Progress: 5/6 (83.3%)
+
+  ✅ Edurus Potion
+  ✅ Maxima Potion
+  ✅ Wiggenweld Potion
+  ❌ Invisibility Potion
+
+Brewed: 5/6 potions (83.3%)
 ```
 
 Unlike guide-based estimators, this tool reads the **actual tracking data from your save**, so the count and per-enemy list reflect exactly what the game recorded.
