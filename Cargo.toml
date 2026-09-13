@@ -1,0 +1,23 @@
+[package]
+name = "hl-save-tracker"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "hl-save-tracker"
+path = "src/main.rs"
+
+[[bin]]
+name = "decompile_exe"
+path = "src/bin/decompile_exe.rs"
+
+[dependencies]
+anyhow = "1.0"
+byteorder = "1.5"
+clap = { version = "4.5", features = ["derive"] }
+iced-x86 = "1.21"
+rusqlite = { version = "0.31", features = ["bundled"] }
+walkdir = "2.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+oozextract = { version = "0.5.5", default-features = false }

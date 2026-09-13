@@ -1,0 +1,15 @@
+# Rust build output
+/target
+
+# SQLite extracts / test databases
+*.db
+temp_analysis.db
+
+# Hogwarts Legacy save files (contain personal progress)
+*.sav
+
+# Editor / OS cruft
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
