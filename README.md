@@ -1,6 +1,6 @@
-# Hogwarts Legacy Achievement Tracker
+# Hogwarts Legacy Save Tracker
 
-A small Rust CLI that reads your Hogwarts Legacy save file and reports your progress toward the **Finishing Touches** achievement (some platforms: "Finish Strong" / PFA trophy): land an Ancient Magic finisher on each of the **34** eligible enemy types.
+A small Rust CLI that reads your Hogwarts Legacy save file and reports progress toward the achievements it currently supports. Everything is derived from the achievement-tracking data the game records in the save itself — no guides or guesswork.
 
 ```
 === Finishing Touches (PFA_43) ===
@@ -18,16 +18,15 @@ Progress: 28/34 (82.4%)
 
 Unlike guide-based estimators, this tool reads the **actual tracking data from your save**, so the count and per-enemy list reflect exactly what the game recorded.
 
-## Requirements
+## Supported achievements
 
-- Rust toolchain (stable) — get it from <https://rustup.rs>
+### Finishing Touches (PFA_43)
 
-That's it. Everything from the game's save format — including the proprietary
-**Oodle** compression used for the embedded database — is handled in process with
-pure Rust (via the MIT-licensed [`oozextract`] crate), so the tool needs no Oodle DLL
-and no files from your game install.
+Land an Ancient Magic finisher on each of the **34** eligible enemy types ("Finish Strong" on some platforms, the platform trophy for PFA_43). The tracker reports your completed count (e.g. `28/34`) and lists which enemy classes are done and which are still needed.
 
-[oozextract]: https://crates.io/crates/oozextract
+### The 34 enemy types
+
+Derived from the game's own data tables (`PhoenixGameData.sqlite`), not from forum lists:
 
 ## Build
 
@@ -82,14 +81,6 @@ Derived from the game's own data tables (`PhoenixGameData.sqlite`), not from for
 | Mongrels | 2 | Mongrel, Dark Mongrel |
 
 Notable exclusions (they appear in the game's internal achievement pool so they can look "complete", but the game never counts them): **Armored Troll** and **Loyalist Commander/Chieftain**. Both are seeded into the tracking pool on a new character and never contribute to the 34.
-
-## How it works
-
-1. **GVAS → Oodle → SQLite**: the `.sav` is a UE4 `GVAS` container. The tool locates the `RawDatabaseImage` field, splits it into its ~128 KiB Oodle-compressed package chunks, decompresses each with a pure-Rust implementation of the decompression algorithm (`oozextract`), stitches them back together, and repairs the SQLite header. The chunk format (Kraken full-page blocks) was confirmed byte-identical to the game's own `OodleLZ_Decompress` across ~1000 chunks / 15 saves.
-2. **Query `AchievementDynamic` for `PFA_43`** ("Finishing Touches", a *OneOfEach*-type achievement):
-   - `Instances` = number of distinct enemy types you've credited (your real progress, e.g. `28`).
-   - `OneOfEach` = the registered pool (the 51 seeded special/boss/named entries + every regular class you've hit with an Ancient Magic finisher).
-3. **Diff the pool against the 34-class roster** to produce the completed / missing lists. Classes in the pool that aren't on the roster (bosses, named enemies, classmate duels, etc.) are reported separately as "registered in pool but not counted".
 
 ## Project layout
 
