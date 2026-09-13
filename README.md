@@ -28,6 +28,10 @@ Land an Ancient Magic finisher on each of the **34** eligible enemy types ("Fini
 
 Breed each of the **12** breedable beast species (phoenixes don't count). The tracker reads the same `OneOfEach` registration data the game records per species, reporting your bred count (e.g. `5/12`) and flagging any surprise pool entries.
 
+### Put Down Roots
+
+Grow each of the **8** types of plant in the Room of Requirement (Dittany, Fluxweed, Knotgrass, Mallowsweet, Mandrake, Shrivelfig, Chinese Chomping Cabbage, Venomous Tentacula). Reports your grown count (e.g. `6/8`) and flags any surprise pool entries.
+
 ## Build
 
 ```powershell
@@ -48,7 +52,7 @@ hl-save-tracker.exe --save "C:\Users\<you>\AppData\Local\Hogwarts Legacy\Saved\S
 | `-s, --save <PATH>` | Path to a `.sav` file (**required**) |
 | `-f, --format <fmt>` | Output: `table` (default), `json`, `csv` |
 | `--missing-only` | Show only the enemy types still needed |
-| `--report <which>` | Which achievements: `both` (default), `enemies`, `beasts` |
+| `--report <which>` | Which achievements: `both` (default), `enemies`, `beasts`, `plants` |
 | `--json` | Shorthand for `--format json` |
 
 ### Examples
@@ -70,7 +74,7 @@ Saves live in `%LOCALAPPDATA%\Hogwarts Legacy\Saved\SaveGames\<SteamID>\`. The f
 
 - `src/main.rs` — the tracker CLI (save parsing, decompression, SQLite, reporting)
 - `src/lib.rs` — save → SQLite extraction pipeline and the public analysis API
-- `src/achievements/` — one module per supported achievement (`finishing_touches.rs`, `nature_of_the_beast.rs`)
+- `src/achievements/` — one module per supported achievement (`finishing_touches.rs`, `nature_of_the_beast.rs`, `put_down_roots.rs`)
 - `src/bin/decompile_exe.rs` — a small research helper used while reverse-engineering the save format (not part of the tracker itself)
 - `src/bin/sanitize_save.rs` — scrubs identity data (character name / UID) from a save to produce a commit-safe test fixture
 

@@ -1,5 +1,7 @@
 use clap::Parser;
-use hl_save_tracker::{analyze_all, AchievementStatus, BeastAchievementStatus};
+use hl_save_tracker::{
+    analyze_all, AchievementStatus, BeastAchievementStatus, PlantAchievementStatus,
+};
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -25,7 +27,7 @@ struct Args {
     #[arg(long)]
     json: bool,
 
-    /// Which achievements to report: both, enemies, or beasts
+    /// Which achievements to report: both, enemies, beasts, or plants
     #[arg(long, value_enum, default_value_t = Report::Both)]
     report: Report,
 }
@@ -36,6 +38,7 @@ enum Report {
     Both,
     Enemies,
     Beasts,
+    Plants,
 }
 
 #[derive(Debug, clap::ValueEnum, Clone, Default)]
@@ -139,6 +142,71 @@ fn output_status(status: &AchievementStatus, format: &OutputFormat, missing_only
 struct FullReport {
     enemies: AchievementStatus,
     beasts: BeastAchievementStatus,
+    plants: PlantAchievementStatus,
+}
+
+fn output_plant_status(status: &PlantAchievementStatus, format: &OutputFormat) {
+    match format {
+        OutputFormat::Json => {
+            println!("{}", serde_json::to_string_pretty(status).unwrap());
+        }
+        OutputFormat::Csv => {
+            println!("id,name,grown");
+            for p in status
+                .grown_plants_list
+                .iter()
+                .chain(status.missing_plants.iter())
+            {
+                println!("{},{},{}", p.id, p.name, p.grown);
+            }
+        }
+        OutputFormat::Table => {
+            println!(
+                "\n=== {} ({}) ===",
+                status.achievement_name, status.achievement_id
+            );
+            println!(
+                "Progress: {}/{} ({:.1}%)",
+                status.grown_plants, status.total_plants, status.progress_percent
+            );
+            println!();
+
+            if !status.tracked {
+                println!(
+                    "NOTE: this save has no {} tracking data yet (Room of Requirement not unlocked). The full roster is shown as not started.",
+                    status.achievement_id
+                );
+            }
+
+            for p in status
+                .grown_plants_list
+                .iter()
+                .chain(status.missing_plants.iter())
+            {
+                let status_icon = if p.grown { "✅" } else { "❌" };
+                println!("  {} {}", status_icon, p.name);
+            }
+
+            println!(
+                "\nGrown: {}/{} plants ({:.1}%)",
+                status.grown_plants, status.total_plants, status.progress_percent
+            );
+
+            if !status.pool_not_whitelist.is_empty() {
+                println!(
+                    "\nRegistered in pool but NOT in the 8-plant list: {}",
+                    status.pool_not_whitelist.join(", ")
+                );
+            }
+            if let Some(sq) = &status.squeeze_indicator {
+                println!("\nNOTE: {}", sq);
+            }
+            println!(
+                "\nRoster derived from PhoenixGameData.sqlite (PlantDefinition + PFA_28 pool)"
+            );
+            println!("(8 growable plants; pool recorder uses 'ShrivelFig' casing as registered).");
+        }
+    }
 }
 
 fn output_beast_status(status: &BeastAchievementStatus, format: &OutputFormat) {
@@ -208,7 +276,7 @@ fn main() -> anyhow::Result<()> {
     println!("==============================\n");
 
     println!("Processing save file: {:?}", args.save);
-    let (status, beasts) = analyze_all(&args.save)?;
+    let (status, beasts, plants) = analyze_all(&args.save)?;
 
     let format = if args.json {
         OutputFormat::Json
@@ -223,18 +291,22 @@ fn main() -> anyhow::Result<()> {
                 "{}",
                 serde_json::to_string_pretty(&FullReport {
                     enemies: status,
-                    beasts
+                    beasts,
+                    plants
                 })
                 .unwrap()
             );
         } else {
             output_status(&status, &format, args.missing_only);
             output_beast_status(&beasts, &format);
+            output_plant_status(&plants, &format);
         }
     } else if args.report == Report::Enemies {
         output_status(&status, &format, args.missing_only);
-    } else {
+    } else if args.report == Report::Beasts {
         output_beast_status(&beasts, &format);
+    } else {
+        output_plant_status(&plants, &format);
     }
 
     Ok(())

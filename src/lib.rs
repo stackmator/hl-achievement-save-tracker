@@ -22,6 +22,10 @@ pub use achievements::nature_of_the_beast::{
     load_beast_status, BeastAchievementStatus, BeastStatus, BeastType, BEAST_TYPES, PFA_26_ID,
     PFA_26_NAME, PFA_26_REQUIRED,
 };
+pub use achievements::put_down_roots::{
+    load_plant_status, PlantAchievementStatus, PlantStatus, PlantType, PFA_28_ID, PFA_28_NAME,
+    PFA_28_REQUIRED, PLANT_TYPES,
+};
 
 fn find_raw_database_image(data: &[u8]) -> anyhow::Result<usize> {
     let needle = b"RawDatabaseImage";
@@ -215,12 +219,19 @@ pub fn analyze_save_with_db<S: AsRef<Path>>(
     achievements::finishing_touches::load_status(&conn)
 }
 
-/// Extracts the DB once and reports progress for both supported achievements.
-pub fn analyze_all(path: &Path) -> anyhow::Result<(AchievementStatus, BeastAchievementStatus)> {
+/// Extracts the DB once and reports progress for all supported achievements.
+pub fn analyze_all(
+    path: &Path,
+) -> anyhow::Result<(
+    AchievementStatus,
+    BeastAchievementStatus,
+    PlantAchievementStatus,
+)> {
     let conn = open_save_db(path)?;
     Ok((
         achievements::finishing_touches::load_status(&conn)?,
         achievements::nature_of_the_beast::load_beast_status(&conn)?,
+        achievements::put_down_roots::load_plant_status(&conn)?,
     ))
 }
 
@@ -228,7 +239,11 @@ pub fn analyze_all(path: &Path) -> anyhow::Result<(AchievementStatus, BeastAchie
 pub fn analyze_all_with_db<S: AsRef<Path>>(
     path: &Path,
     db_path: S,
-) -> anyhow::Result<(AchievementStatus, BeastAchievementStatus)> {
+) -> anyhow::Result<(
+    AchievementStatus,
+    BeastAchievementStatus,
+    PlantAchievementStatus,
+)> {
     let data = fs::read(path)?;
     if !data.starts_with(b"GVAS") {
         anyhow::bail!("Not a GVAS file");
@@ -244,6 +259,7 @@ pub fn analyze_all_with_db<S: AsRef<Path>>(
     Ok((
         achievements::finishing_touches::load_status(&conn)?,
         achievements::nature_of_the_beast::load_beast_status(&conn)?,
+        achievements::put_down_roots::load_plant_status(&conn)?,
     ))
 }
 

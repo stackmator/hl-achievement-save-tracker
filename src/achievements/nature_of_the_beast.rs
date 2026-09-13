@@ -1,5 +1,4 @@
 use rusqlite::Connection;
-use rusqlite::OptionalExtension;
 use serde::Serialize;
 
 pub const PFA_26_ID: &str = "PFA_26";
@@ -95,27 +94,8 @@ pub struct BeastAchievementStatus {
 }
 
 pub fn load_beast_status(conn: &Connection) -> anyhow::Result<BeastAchievementStatus> {
-    let mut bred_set: std::collections::HashSet<String> = std::collections::HashSet::new();
-
-    let row: Option<(i64, String)> = {
-        let mut stmt = conn.prepare(
-            "SELECT Instances, OneOfEach FROM AchievementDynamic WHERE AchievementID = ?1",
-        )?;
-        stmt.query_row([PFA_26_ID], |row| Ok((row.get(0)?, row.get(1)?)))
-            .optional()?
-    };
-
-    let instances: i64;
-    match row {
-        Some((n, one_of_each)) => {
-            instances = n;
-            for part in one_of_each.split(',') {
-                let trimmed = part.trim();
-                if !trimmed.is_empty() {
-                    bred_set.insert(trimmed.to_string());
-                }
-            }
-        }
+    let pool = match crate::achievements::load_pool(conn, PFA_26_ID)? {
+        Some(pool) => pool,
         None => {
             let missing_beasts: Vec<BeastStatus> = BEAST_TYPES
                 .iter()
@@ -138,7 +118,9 @@ pub fn load_beast_status(conn: &Connection) -> anyhow::Result<BeastAchievementSt
                 progress_percent: 0.0,
             });
         }
-    }
+    };
+    let instances = pool.instances;
+    let bred_set = &pool.registered;
 
     let mut all_beasts = Vec::new();
     let mut missing_beasts = Vec::new();
@@ -160,7 +142,7 @@ pub fn load_beast_status(conn: &Connection) -> anyhow::Result<BeastAchievementSt
         all_beasts.push(status);
     }
 
-    for id in &bred_set {
+    for id in bred_set {
         if !all_beasts.iter().any(|b| b.id == *id) {
             pool_not_whitelist.push(id.clone());
         }

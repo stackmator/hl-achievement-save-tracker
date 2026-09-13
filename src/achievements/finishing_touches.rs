@@ -1,5 +1,4 @@
 use rusqlite::Connection;
-use rusqlite::OptionalExtension;
 use serde::Serialize;
 
 pub const PFA_43_ID: &str = "PFA_43";
@@ -266,27 +265,8 @@ pub struct AchievementStatus {
 }
 
 pub fn load_status(conn: &Connection) -> anyhow::Result<AchievementStatus> {
-    let mut registered_set: std::collections::HashSet<String> = std::collections::HashSet::new();
-
-    let row: Option<(i64, String)> = {
-        let mut stmt = conn.prepare(
-            "SELECT Instances, OneOfEach FROM AchievementDynamic WHERE AchievementID = ?1",
-        )?;
-        stmt.query_row([PFA_43_ID], |row| Ok((row.get(0)?, row.get(1)?)))
-            .optional()?
-    };
-
-    let instances: i64;
-    match row {
-        Some((n, one_of_each)) => {
-            instances = n;
-            for part in one_of_each.split(',') {
-                let trimmed = part.trim();
-                if !trimmed.is_empty() {
-                    registered_set.insert(trimmed.to_string());
-                }
-            }
-        }
+    let pool = match crate::achievements::load_pool(conn, PFA_43_ID)? {
+        Some(pool) => pool,
         None => {
             let missing_enemies: Vec<EnemyStatus> = ENEMY_TYPES
                 .iter()
@@ -312,7 +292,9 @@ pub fn load_status(conn: &Connection) -> anyhow::Result<AchievementStatus> {
                 progress_percent: 0.0,
             });
         }
-    }
+    };
+    let instances = pool.instances;
+    let registered_set = &pool.registered;
 
     let mut all_enemies = Vec::new();
     let mut missing_enemies = Vec::new();
@@ -339,7 +321,7 @@ pub fn load_status(conn: &Connection) -> anyhow::Result<AchievementStatus> {
         all_enemies.push(status);
     }
 
-    for id in &registered_set {
+    for id in registered_set {
         if !all_enemies.iter().any(|e| e.id == *id) {
             registered_not_counted.push(id.clone());
         }

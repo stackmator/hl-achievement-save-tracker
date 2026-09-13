@@ -39,6 +39,12 @@ const EXPECTED_MISSING_BEASTS: [&str; 7] = [
 const ORIG_NAME: &str = "Cynthia Parter";
 const ORIG_UID: &str = "7FC50D4642F86FBD0AF90C886DFDACCD";
 
+/// "Put Down Roots" values captured from HL-00-00.sav: 6 of 8 plants grown
+/// (Dittany, Mandrake, ChompingCabbage_Plant, ShrivelFig, Fluxweed, Mallowsweet),
+/// none outside the 8-plant roster.
+const EXPECTED_GROWN_PLANTS: usize = 6;
+const EXPECTED_MISSING_PLANTS: [&str; 2] = ["Knotgrass", "VenomousTentacula"];
+
 fn fixture_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(FIXTURE)
 }
@@ -107,7 +113,7 @@ fn conformance_against_real_save_data() {
 
 #[test]
 fn conformance_nature_of_the_beast() {
-    let (_, beasts) = analyze_all_with_db(
+    let (_, beasts, _) = analyze_all_with_db(
         &fixture_path(),
         std::env::temp_dir().join("hl_beast_test.db"),
     )
@@ -142,5 +148,45 @@ fn conformance_nature_of_the_beast() {
     assert_eq!(
         got_missing, expected_missing,
         "missing species diverged from golden values"
+    );
+}
+
+#[test]
+fn conformance_put_down_roots() {
+    let (_, _, plants) = analyze_all_with_db(
+        &fixture_path(),
+        std::env::temp_dir().join("hl_plant_test.db"),
+    )
+    .expect("failed to analyze fixture save");
+
+    assert_eq!(plants.achievement_id, "PFA_28");
+    assert_eq!(plants.total_plants, 8);
+    assert_eq!(plants.grown_plants, EXPECTED_GROWN_PLANTS);
+
+    // Same roster invariant: pool size == Instances.
+    assert_eq!(
+        plants.grown_plants_list.len(),
+        plants.grown_plants,
+        "squeeze detected: registered plants != Instances"
+    );
+    assert!(
+        plants.squeeze_indicator.is_none(),
+        "unexpected squeeze indicator"
+    );
+    assert!(
+        plants.pool_not_whitelist.is_empty(),
+        "registered plants outside the 8-roster: {:?}",
+        plants.pool_not_whitelist
+    );
+
+    let got_missing: HashSet<&str> = plants
+        .missing_plants
+        .iter()
+        .map(|p| p.id.as_str())
+        .collect();
+    let expected_missing: HashSet<&str> = EXPECTED_MISSING_PLANTS.iter().copied().collect();
+    assert_eq!(
+        got_missing, expected_missing,
+        "missing plants diverged from golden values"
     );
 }
