@@ -2,6 +2,8 @@ use clap::Parser;
 use hl_save_tracker::{
     analyze_all, AchievementStatus, BeastAchievementStatus, PlantAchievementStatus,
 };
+use std::fs::File;
+use std::io::{self, Write};
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -30,6 +32,10 @@ struct Args {
     /// Which achievements to report: both, enemies, beasts, or plants
     #[arg(long, value_enum, default_value_t = Report::Both)]
     report: Report,
+
+    /// Write report output to this file instead of stdout
+    #[arg(short, long)]
+    out: Option<PathBuf>,
 }
 
 #[derive(Debug, clap::ValueEnum, Clone, Default, PartialEq)]
@@ -49,20 +55,26 @@ enum OutputFormat {
     Csv,
 }
 
-fn output_status(status: &AchievementStatus, format: &OutputFormat, missing_only: bool) {
+fn output_status<W: Write>(
+    w: &mut W,
+    status: &AchievementStatus,
+    format: &OutputFormat,
+    missing_only: bool,
+) -> anyhow::Result<()> {
     match format {
         OutputFormat::Json => {
             if missing_only {
-                println!(
+                writeln!(
+                    w,
                     "{}",
-                    serde_json::to_string_pretty(&status.missing_enemies).unwrap()
-                );
+                    serde_json::to_string_pretty(&status.missing_enemies)?
+                )?;
             } else {
-                println!("{}", serde_json::to_string_pretty(status).unwrap());
+                writeln!(w, "{}", serde_json::to_string_pretty(status)?)?;
             }
         }
         OutputFormat::Csv => {
-            println!("id,name,category,candidate,registered,completed");
+            writeln!(w, "id,name,category,candidate,registered,completed")?;
             let enemies: Vec<&hl_save_tracker::EnemyStatus> = if missing_only {
                 status.missing_enemies.iter().collect()
             } else {
@@ -73,26 +85,32 @@ fn output_status(status: &AchievementStatus, format: &OutputFormat, missing_only
                     .collect()
             };
             for e in enemies {
-                println!(
+                writeln!(
+                    w,
                     "{},{},{},{},{},{}",
                     e.id, e.name, e.category, e.candidate, e.registered, e.completed
-                );
+                )?;
             }
         }
         OutputFormat::Table => {
-            println!(
+            writeln!(
+                w,
                 "\n=== {} ({}) ===",
                 status.achievement_name, status.achievement_id
-            );
-            println!(
+            )?;
+            writeln!(
+                w,
                 "Progress: {}/{} ({:.1}%)",
                 status.completed_enemies, status.total_enemies, status.progress_percent
-            );
-            println!();
+            )?;
+            writeln!(w)?;
 
             if !status.tracked {
-                println!("NOTE: this save has no {} tracking data yet (fresh save). The full roster is shown as not started.",
-                    status.achievement_id);
+                writeln!(
+                    w,
+                    "NOTE: this save has no {} tracking data yet (fresh save). The full roster is shown as not started.",
+                    status.achievement_id
+                )?;
             }
 
             let enemies: Vec<&hl_save_tracker::EnemyStatus> = if missing_only {
@@ -109,33 +127,42 @@ fn output_status(status: &AchievementStatus, format: &OutputFormat, missing_only
             for e in enemies {
                 if e.category != current_category {
                     current_category = e.category.to_string();
-                    println!("\n--- {} ---", current_category);
+                    writeln!(w, "\n--- {} ---", current_category)?;
                 }
 
                 let status_icon = if e.registered { "✅" } else { "❌" };
                 let candidate_str = if e.candidate { " (unverified)" } else { "" };
-                println!("  {} {}{}", status_icon, e.name, candidate_str);
+                writeln!(w, "  {} {}{}", status_icon, e.name, candidate_str)?;
             }
 
-            println!(
+            writeln!(
+                w,
                 "\nTotal: {}/{} enemies completed ({:.1}%)",
                 status.completed_enemies, status.total_enemies, status.progress_percent
-            );
+            )?;
 
             if !status.registered_not_counted.is_empty() {
-                println!(
+                writeln!(
+                    w,
                     "\nRegistered in pool but NOT in the 34-class list (named/boss/one-offs): {}",
                     status.registered_not_counted.len()
-                );
-                println!("  {}", status.registered_not_counted.join(", "));
+                )?;
+                writeln!(w, "  {}", status.registered_not_counted.join(", "))?;
             }
             if let Some(sq) = &status.squeeze_indicator {
-                println!("\nNOTE: {}", sq);
+                writeln!(w, "\nNOTE: {}", sq)?;
             }
-            println!("\nRoster derived from PhoenixGameData.sqlite (EnemyDefinition + PFA_43 OneOfEachInit)");
-            println!("and validated over 15 saves: Instances == registered whitelist classes for all of them.");
+            writeln!(
+                w,
+                "\nRoster derived from PhoenixGameData.sqlite (EnemyDefinition + PFA_43 OneOfEachInit)"
+            )?;
+            writeln!(
+                w,
+                "and validated over 15 saves: Instances == registered whitelist classes for all of them."
+            )?;
         }
     }
+    Ok(())
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -145,37 +172,44 @@ struct FullReport {
     plants: PlantAchievementStatus,
 }
 
-fn output_plant_status(status: &PlantAchievementStatus, format: &OutputFormat) {
+fn output_plant_status<W: Write>(
+    w: &mut W,
+    status: &PlantAchievementStatus,
+    format: &OutputFormat,
+) -> anyhow::Result<()> {
     match format {
         OutputFormat::Json => {
-            println!("{}", serde_json::to_string_pretty(status).unwrap());
+            writeln!(w, "{}", serde_json::to_string_pretty(status)?)?;
         }
         OutputFormat::Csv => {
-            println!("id,name,grown");
+            writeln!(w, "id,name,grown")?;
             for p in status
                 .grown_plants_list
                 .iter()
                 .chain(status.missing_plants.iter())
             {
-                println!("{},{},{}", p.id, p.name, p.grown);
+                writeln!(w, "{},{},{}", p.id, p.name, p.grown)?;
             }
         }
         OutputFormat::Table => {
-            println!(
+            writeln!(
+                w,
                 "\n=== {} ({}) ===",
                 status.achievement_name, status.achievement_id
-            );
-            println!(
+            )?;
+            writeln!(
+                w,
                 "Progress: {}/{} ({:.1}%)",
                 status.grown_plants, status.total_plants, status.progress_percent
-            );
-            println!();
+            )?;
+            writeln!(w)?;
 
             if !status.tracked {
-                println!(
+                writeln!(
+                    w,
                     "NOTE: this save has no {} tracking data yet (Room of Requirement not unlocked). The full roster is shown as not started.",
                     status.achievement_id
-                );
+                )?;
             }
 
             for p in status
@@ -184,60 +218,73 @@ fn output_plant_status(status: &PlantAchievementStatus, format: &OutputFormat) {
                 .chain(status.missing_plants.iter())
             {
                 let status_icon = if p.grown { "✅" } else { "❌" };
-                println!("  {} {}", status_icon, p.name);
+                writeln!(w, "  {} {}", status_icon, p.name)?;
             }
 
-            println!(
+            writeln!(
+                w,
                 "\nGrown: {}/{} plants ({:.1}%)",
                 status.grown_plants, status.total_plants, status.progress_percent
-            );
+            )?;
 
             if !status.pool_not_whitelist.is_empty() {
-                println!(
+                writeln!(
+                    w,
                     "\nRegistered in pool but NOT in the 8-plant list: {}",
                     status.pool_not_whitelist.join(", ")
-                );
+                )?;
             }
             if let Some(sq) = &status.squeeze_indicator {
-                println!("\nNOTE: {}", sq);
+                writeln!(w, "\nNOTE: {}", sq)?;
             }
-            println!(
+            writeln!(
+                w,
                 "\nRoster derived from PhoenixGameData.sqlite (PlantDefinition + PFA_28 pool)"
-            );
-            println!("(8 growable plants; pool recorder uses 'ShrivelFig' casing as registered).");
+            )?;
+            writeln!(w, "(8 growable plants; pool recorder uses 'ShrivelFig' casing as registered).")?;
         }
     }
+    Ok(())
 }
 
-fn output_beast_status(status: &BeastAchievementStatus, format: &OutputFormat) {
+fn output_beast_status<W: Write>(
+    w: &mut W,
+    status: &BeastAchievementStatus,
+    format: &OutputFormat,
+) -> anyhow::Result<()> {
     match format {
         OutputFormat::Json => {
-            println!("{}", serde_json::to_string_pretty(status).unwrap());
+            writeln!(w, "{}", serde_json::to_string_pretty(status)?)?;
         }
         OutputFormat::Csv => {
-            println!("id,name,bred");
+            writeln!(w, "id,name,bred")?;
             for b in status
                 .bred_beasts_list
                 .iter()
                 .chain(status.missing_beasts.iter())
             {
-                println!("{},{},{}", b.id, b.name, b.bred);
+                writeln!(w, "{},{},{}", b.id, b.name, b.bred)?;
             }
         }
         OutputFormat::Table => {
-            println!(
+            writeln!(
+                w,
                 "\n=== {} ({}) ===",
                 status.achievement_name, status.achievement_id
-            );
-            println!(
+            )?;
+            writeln!(
+                w,
                 "Progress: {}/{} ({:.1}%)",
                 status.bred_beasts, status.total_beasts, status.progress_percent
-            );
-            println!();
+            )?;
+            writeln!(w)?;
 
             if !status.tracked {
-                println!("NOTE: this save has no {} tracking data yet (breeding not started). The full roster is shown as not started.",
-                    status.achievement_id);
+                writeln!(
+                    w,
+                    "NOTE: this save has no {} tracking data yet (breeding not started). The full roster is shown as not started.",
+                    status.achievement_id
+                )?;
             }
 
             for b in status
@@ -246,36 +293,48 @@ fn output_beast_status(status: &BeastAchievementStatus, format: &OutputFormat) {
                 .chain(status.missing_beasts.iter())
             {
                 let status_icon = if b.bred { "✅" } else { "❌" };
-                println!("  {} {}", status_icon, b.name);
+                writeln!(w, "  {} {}", status_icon, b.name)?;
             }
 
-            println!(
+            writeln!(
+                w,
                 "\nBred: {}/{} species ({:.1}%)",
                 status.bred_beasts, status.total_beasts, status.progress_percent
-            );
+            )?;
 
             if !status.pool_not_whitelist.is_empty() {
-                println!(
+                writeln!(
+                    w,
                     "\nRegistered in pool but NOT in the 12-species list: {}",
                     status.pool_not_whitelist.join(", ")
-                );
+                )?;
             }
             if let Some(sq) = &status.squeeze_indicator {
-                println!("\nNOTE: {}", sq);
+                writeln!(w, "\nNOTE: {}", sq)?;
             }
-            println!("\nRoster derived from the save's PFA_26 OneOfEach pool and NamedCreatureDefinition");
-            println!("(12 breedable species; phoenix is excluded - not breedable).");
+            writeln!(
+                w,
+                "\nRoster derived from the save's PFA_26 OneOfEach pool and NamedCreatureDefinition"
+            )?;
+            writeln!(w, "(12 breedable species; phoenix is excluded - not breedable).")?;
         }
     }
+    Ok(())
 }
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
-    println!("Hogwarts Legacy Save Tracker");
-    println!("==============================\n");
+    let mut out: Box<dyn Write> = match &args.out {
+        Some(path) => Box::new(File::create(path)?),
+        None => Box::new(io::stdout()),
+    };
 
-    println!("Processing save file: {:?}", args.save);
+    writeln!(out, "Hogwarts Legacy Save Tracker")?;
+    writeln!(out, "==============================")?;
+    writeln!(out)?;
+
+    writeln!(out, "Processing save file: {:?}", args.save)?;
     let (status, beasts, plants) = analyze_all(&args.save)?;
 
     let format = if args.json {
@@ -287,26 +346,26 @@ fn main() -> anyhow::Result<()> {
 
     if args.report == Report::Both {
         if json_format {
-            println!(
+            writeln!(
+                out,
                 "{}",
                 serde_json::to_string_pretty(&FullReport {
                     enemies: status,
                     beasts,
                     plants
-                })
-                .unwrap()
-            );
+                })?
+            )?;
         } else {
-            output_status(&status, &format, args.missing_only);
-            output_beast_status(&beasts, &format);
-            output_plant_status(&plants, &format);
+            output_status(&mut out, &status, &format, args.missing_only)?;
+            output_beast_status(&mut out, &beasts, &format)?;
+            output_plant_status(&mut out, &plants, &format)?;
         }
     } else if args.report == Report::Enemies {
-        output_status(&status, &format, args.missing_only);
+        output_status(&mut out, &status, &format, args.missing_only)?;
     } else if args.report == Report::Beasts {
-        output_beast_status(&beasts, &format);
+        output_beast_status(&mut out, &beasts, &format)?;
     } else {
-        output_plant_status(&plants, &format);
+        output_plant_status(&mut out, &plants, &format)?;
     }
 
     Ok(())

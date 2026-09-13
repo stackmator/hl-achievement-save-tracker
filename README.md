@@ -54,6 +54,7 @@ hl-save-tracker.exe --save "C:\Users\<you>\AppData\Local\Hogwarts Legacy\Saved\S
 | `--missing-only` | Show only the enemy types still needed |
 | `--report <which>` | Which achievements: `both` (default), `enemies`, `beasts`, `plants` |
 | `--json` | Shorthand for `--format json` |
+| `-o, --out <PATH>` | Write the report to a file instead of stdout |
 
 ### Examples
 
@@ -66,6 +67,9 @@ hl-save-tracker.exe -s "…\HL-00-00.sav" --missing-only --json
 
 # CSV of everything
 hl-save-tracker.exe -s "…\HL-00-00.sav" -f csv
+
+# Write the report to a file instead of stdout
+hl-save-tracker.exe -s "…\HL-00-00.sav" -o report.txt
 ```
 
 Saves live in `%LOCALAPPDATA%\Hogwarts Legacy\Saved\SaveGames\<SteamID>\`. The file is read-only; the tool never modifies your save.
