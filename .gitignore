@@ -5,8 +5,10 @@
 *.db
 temp_analysis.db
 
-# Hogwarts Legacy save files (contain personal progress)
+# Hogwarts Legacy save files (contain personal progress) -- except the
+# sanitized fixture checked into testdata/ for the conformance test.
 *.sav
+!testdata/*.sav
 
 # Editor / OS cruft
 .idea/
