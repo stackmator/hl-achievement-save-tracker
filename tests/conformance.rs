@@ -9,6 +9,7 @@ use hl_save_tracker::analyze_save_with_db;
 /// the file is byte-for-byte the genuine save captured from the game.
 const FIXTURE: &str = "testdata/HL-00-00.sanitized.sav";
 const FIXTURE_2: &str = "testdata/HL-00-14.sanitized.sav";
+const FIXTURE_3: &str = "testdata/HL-00-07.sanitized.sav";
 
 /// Values captured from the real (unsanitized) HL-00-00.sav before scrubbing.
 const EXPECTED_INSTANCES: usize = 28;
@@ -83,12 +84,55 @@ const EXPECTED_COMPLETED_TRIALS_2: usize = 38;
 const EXPECTED_COLLECTED_ITEMS_2: usize = 583;
 const EXPECTED_TOTAL_ITEMS_2: usize = 634;
 
+/// "HL-00-07.sav" golden values: a mid-game point of the same character
+/// (Aug 2026), distinct from fixture 1 (start of run) and fixture 2 (end of
+/// run). Finishing Touches is 24/34 with a *different* missing set than both
+/// other fixtures (Inferius and Venomous Ambusher are done in fixtures 1+2
+/// but missing here), pinning down the roster invariant at yet another level.
+const EXPECTED_INSTANCES_3: usize = 24;
+const EXPECTED_MISSING_3: [&str; 10] = [
+    "DW_Extortionist_Sniper",  // Ashwinder Ranger
+    "DW_Extortionist_Captain", // Ashwinder Duellist
+    "AnimagusWolf",            // Wolf Animagus
+    "Inferius",                // Inferius
+    "SpiderVenomous",          // Venomous Scurriour
+    "SpiderVenomousSpitter",   // Venomous Shooter
+    "SpiderVenomousSniper",    // Venomous Ambusher
+    "Troll_River",             // River Troll
+    "Wolf",                    // Dark Mongrel
+    "DW_Wolf",                 // Mongrel
+];
+const EXPECTED_NOT_COUNTED_3: usize = 51;
+const EXPECTED_BRED_BEASTS_3: usize = 1;
+const EXPECTED_MISSING_BEASTS_3: [&str; 11] = [
+    "Diricawl",
+    "Fwooper",
+    "GiantPurpleToad",
+    "Graphorn",
+    "Hippogriff",
+    "Jobberknoll",
+    "Kneazle",
+    "Mooncalf",
+    "Niffler",
+    "Puffskein",
+    "Unicorn",
+];
+const EXPECTED_GROWN_PLANTS_3: usize = 6;
+const EXPECTED_BREWED_POTIONS_3: usize = 5;
+const EXPECTED_COMPLETED_TRIALS_3: usize = 21;
+const EXPECTED_COLLECTED_ITEMS_3: usize = 460;
+const EXPECTED_TOTAL_ITEMS_3: usize = 633;
+
 fn fixture_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(FIXTURE)
 }
 
 fn fixture_2_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(FIXTURE_2)
+}
+
+fn fixture_3_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(FIXTURE_3)
 }
 
 fn assert_sanitized(path: &std::path::Path) {
@@ -121,6 +165,7 @@ fn assert_sanitized(path: &std::path::Path) {
 fn fixtures_are_real_sanitized_saves() {
     assert_sanitized(&fixture_path());
     assert_sanitized(&fixture_2_path());
+    assert_sanitized(&fixture_3_path());
 }
 
 #[test]
@@ -442,5 +487,114 @@ fn conformance_hl_00_14_progress() {
     assert_eq!(
         full.collectors.categories.iter().map(|c| c.total).sum::<usize>(),
         EXPECTED_TOTAL_ITEMS_2
+    );
+}
+
+/// Golden values for the third fixture, HL-00-07.sav. A mid-game point with a
+/// missing set distinct from fixtures 1 and 2, exercising the roster
+/// invariants ("registered == Instances", empty pool_not_whitelist) at yet
+/// another progress level.
+#[test]
+fn conformance_hl_00_07_midgame() {
+    let full = analyze_all_with_db(
+        &fixture_3_path(),
+        std::env::temp_dir().join("hl_07_test.db"),
+    )
+    .expect("failed to analyze HL-00-07 fixture");
+
+    // Finishing Touches
+    assert_eq!(full.enemies.total_enemies, 34);
+    assert_eq!(full.enemies.completed_enemies, EXPECTED_INSTANCES_3);
+    assert_eq!(
+        full.enemies.completed_enemies_list.len(),
+        full.enemies.completed_enemies,
+        "squeeze detected: registered whitelist classes != Instances"
+    );
+    assert!(
+        full.enemies.squeeze_indicator.is_none(),
+        "unexpected squeeze indicator"
+    );
+    let got_missing: HashSet<&str> = full
+        .enemies
+        .missing_enemies
+        .iter()
+        .map(|e| e.id.as_str())
+        .collect();
+    let expected_missing: HashSet<&str> = EXPECTED_MISSING_3.iter().copied().collect();
+    assert_eq!(
+        got_missing, expected_missing,
+        "missing list diverged from golden values"
+    );
+    assert_eq!(full.enemies.registered_not_counted.len(), EXPECTED_NOT_COUNTED_3);
+
+    // The Nature of the Beast: only the Thestral bred so far.
+    assert_eq!(full.beasts.bred_beasts, EXPECTED_BRED_BEASTS_3);
+    assert_eq!(full.beasts.missing_beasts.len(), EXPECTED_MISSING_BEASTS_3.len());
+    assert!(full.beasts.pool_not_whitelist.is_empty());
+    let got_missing_beasts: HashSet<&str> = full
+        .beasts
+        .missing_beasts
+        .iter()
+        .map(|b| b.id.as_str())
+        .collect();
+    let expected_missing_beasts: HashSet<&str> =
+        EXPECTED_MISSING_BEASTS_3.iter().copied().collect();
+    assert_eq!(
+        got_missing_beasts, expected_missing_beasts,
+        "missing species diverged from golden values"
+    );
+
+    // Put Down Roots and Going Through the Potions: one step from complete.
+    assert_eq!(full.plants.grown_plants, EXPECTED_GROWN_PLANTS_3);
+    assert_eq!(
+        full.plants.missing_plants.len(),
+        EXPECTED_MISSING_PLANTS.len(),
+        "missing plants diverged from golden values"
+    );
+    assert!(full.plants.pool_not_whitelist.is_empty());
+    assert_eq!(full.potions.brewed_potions, EXPECTED_BREWED_POTIONS_3);
+    assert_eq!(
+        full.potions.missing_potions.len(),
+        EXPECTED_MISSING_POTIONS.len(),
+        "missing potions diverged from golden values"
+    );
+    assert!(full.potions.pool_not_whitelist.is_empty());
+
+    // Merlin's Beard
+    assert_eq!(full.merlin.completed_trials, EXPECTED_COMPLETED_TRIALS_3);
+    assert_eq!(
+        full.merlin.progress_percent,
+        (EXPECTED_COMPLETED_TRIALS_3 as f32 / 95.0) * 100.0
+    );
+
+    // Collector's Edition
+    assert_eq!(full.collectors.total_items, EXPECTED_TOTAL_ITEMS_3);
+    assert_eq!(full.collectors.total_collected, EXPECTED_COLLECTED_ITEMS_3);
+    assert!(!full.collectors.complete, "HL-00-07 is not complete yet");
+    assert_eq!(full.collectors.categories.len(), 10);
+    let by_id = |id: &str| {
+        full.collectors
+            .categories
+            .iter()
+            .find(|c| c.id == id)
+            .unwrap_or_else(|| panic!("missing category {id}"))
+    };
+    assert_eq!(by_id("Conjurations").obtained, 85);
+    assert_eq!(by_id("Conjurations").total, 140);
+    assert_eq!(by_id("Enemies").obtained, 53);
+    assert_eq!(by_id("Enemies").total, 69);
+    assert_eq!(by_id("Traits").obtained, 37);
+    assert_eq!(by_id("Traits").total, 75);
+    for id in ["Potions", "Seeds"] {
+        let c = by_id(id);
+        assert!(c.obtained >= c.total, "{id} should be complete: {c:?}");
+    }
+    assert_eq!(
+        full.collectors.categories.iter().map(|c| c.obtained).sum::<usize>(),
+        EXPECTED_COLLECTED_ITEMS_3
+    );
+    assert_eq!(
+        full.collectors.categories.iter().map(|c| c.total).sum::<usize>(),
+        EXPECTED_TOTAL_ITEMS_3
     );
 }

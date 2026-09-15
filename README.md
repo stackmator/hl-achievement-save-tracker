@@ -17,7 +17,7 @@ Progress: 28/34 (82.4%)
 
 --- Ashwinders ---
   ❌ Ashwinder Ranger
-  ❌ Ashwinder Captain
+  ❌ Ashwinder Duellist
   ...
 
 Total: 28/34 enemies completed (82.4%)
