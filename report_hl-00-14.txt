@@ -1,0 +1,152 @@
+Hogwarts Legacy Save Tracker
+==============================
+
+Processing save file: "testdata\\HL-00-14.sanitized.sav"
+
+=== Finishing Touches (PFA_43) ===
+Progress: 32/34 (94.1%)
+
+
+--- Ashwinders ---
+  ✅ Ashwinder Scout
+  ✅ Ashwinder Soldier
+  ✅ Ashwinder Assassin
+  ✅ Ashwinder Ranger
+  ✅ Ashwinder Executioner
+
+--- Poachers ---
+  ✅ Poacher Tracker
+  ✅ Poacher Stalker
+  ✅ Poacher Animagus
+  ✅ Poacher Ranger
+  ✅ Poacher Executioner
+  ✅ Wolf Animagus
+
+--- Goblin Loyalists ---
+  ✅ Loyalist Assassin
+  ✅ Loyalist Warrior
+  ✅ Loyalist Sentinel
+  ✅ Loyalist Ranger
+
+--- Inferi ---
+  ✅ Inferius
+
+--- Dugbogs ---
+  ✅ Stoneback Dugbog
+  ✅ Great Spined Dugbog
+  ✅ Cottongrass Dugbog
+
+--- Spiders ---
+  ✅ Thornback Scurriour
+  ✅ Thornback Shooter
+  ✅ Thornback Matriarch
+  ✅ Thornback Ambusher
+  ✅ Acromantula
+  ✅ Venomous Scurriour
+  ✅ Venomous Ambusher
+  ✅ Venomous Matriarch
+
+--- Trolls ---
+  ✅ Forest Troll
+  ✅ Mountain Troll
+  ✅ River Troll
+
+--- Mongrels ---
+  ✅ Dark Mongrel
+  ✅ Mongrel
+
+--- Ashwinders ---
+  ❌ Ashwinder Duellist
+
+--- Spiders ---
+  ❌ Venomous Shooter
+
+Total: 32/34 enemies completed (94.1%)
+
+Registered in pool but NOT in the 34-class list (named/boss/one-offs): 51
+  AilsaTravers, Anak, AstoriaCrickett, BelgruffTheBludgeoner, CatrinHaggarty, CharlotteMorrison, ConstanceDagworth, DW_CassandraMason, DW_TheophilusHarlow, DW_VictorRookwood, DeathMinion, DunstanTrinity, EricNorthcott, Graphorn, GwendolynZhou, HectorWeasley, HogwartsProtector, HogwartsProtector_MultiWeapon, IonaMorgan, LawrenceDavies, LeanderPrewett, Mannequin_Bust_F, Mannequin_Bust_M, NPC_SolomonSallow, Named_Dugbog_Coastal_1, Named_Inferius_1, Named_Inferius_3, Named_Spider_Acromantula_1, Named_Spider_Woodlouse_Tank_1, Named_Troll_Armored_1, Named_Troll_Mountain_1, Named_Troll_River_1, Named_Wolf_1, Named_Wolf_2, NellieOggspire, NeridaRoberts, OgbertTheOdd, PergitThePutrid, RanrakDragon, SilvanusSelwyn, TempesteThorne, TombProtectorBoss, TombProtectorGruntMelee, TombProtectorGruntRanged, TombProtectorMinion, Troll_Armored, Troll_Armored_2, Troll_Armored_3, Troll_Crate, Troll_Death, WolfDeath
+
+Roster derived from PhoenixGameData.sqlite (EnemyDefinition + PFA_43 OneOfEachInit)
+and validated over 15 saves: Instances == registered whitelist classes for all of them.
+
+=== The Nature of the Beast (PFA_26) ===
+Progress: 5/12 (41.7%)
+
+  ✅ Diricawl
+  ✅ Kneazle
+  ✅ Mooncalf
+  ✅ Puffskein
+  ✅ Thestral
+  ❌ Fwooper
+  ❌ Giant Purple Toad
+  ❌ Graphorn
+  ❌ Hippogriff
+  ❌ Jobberknoll
+  ❌ Niffler
+  ❌ Unicorn
+
+Bred: 5/12 species (41.7%)
+
+Roster derived from the save's PFA_26 OneOfEach pool and NamedCreatureDefinition
+(12 breedable species; phoenix is excluded - not breedable).
+
+=== Put Down Roots (PFA_28) ===
+Progress: 8/8 (100.0%)
+
+  ✅ Chinese Chomping Cabbage
+  ✅ Dittany
+  ✅ Fluxweed
+  ✅ Knotgrass
+  ✅ Mallowsweet
+  ✅ Mandrake
+  ✅ Shrivelfig
+  ✅ Venomous Tentacula
+
+Grown: 8/8 plants (100.0%)
+
+Roster derived from PhoenixGameData.sqlite (PlantDefinition + PFA_28 pool)
+(8 growable plants; pool recorder uses 'ShrivelFig' casing as registered).
+
+=== Going Through the Potions (PFA_27) ===
+Progress: 6/6 (100.0%)
+
+  ✅ Focus Potion
+  ✅ Thunderbrew
+  ✅ Edurus Potion
+  ✅ Invisibility Potion
+  ✅ Maxima Potion
+  ✅ Wiggenweld Potion
+
+Brewed: 6/6 potions (100.0%)
+
+Roster derived from the save's PFA_27 OneOfEach pool (recipe IDs; e.g. Wiggenweld is recorded as WoundCleaning).
+(6 brewable potions; Focus is recorded as AMFillPotion and Thunderbrew as AutoDamagePotion).
+
+=== Merlin's Beard! (PFA_37) ===
+Progress: 38/95 (40.0%)
+
+
+Completed: 38/95 Merlin Trials (40.0%)
+
+The save records only the completion count (not individual trials), so the 57 remaining trials are not listed individually.
+
+Total of 95 Merlin Trials across the Highlands; count matches ACK_CompleteAll_MerlinTrials.
+
+=== Collector's Edition (Collection) ===
+Progress: 583/634 (92.0%)
+
+  ✅ Beasts         13/13 (100.0%)
+  ✅ Brooms         15/15 (100.0%)
+  ❌ Conjurations   120/140 (85.7%)
+  ❌ Enemies        67/69 (97.1%)
+  ✅ Exploration    150/150 (100.0%)
+  ❌ Gear           96/104 (92.3%)
+  ✅ Potions        10/10 (100.0%)
+  ✅ Seeds          16/16 (100.0%)
+  ❌ Traits         54/75 (72.0%)
+  ✅ Wand Handles   42/42 (100.0%)
+
+Collected: 583/634 items (92.0%)
+
+Counts are distinct items with an Obtained ledger entry (CollectionDynamic),
+and totals are the save's own collection rosters (DLC-era saves may show smaller totals).

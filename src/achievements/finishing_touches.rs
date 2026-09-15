@@ -10,23 +10,33 @@ pub const PFA_43_REQUIRED: usize = 34; // from game DB AchievementCriteria.Occur
 /// OneOfEachInit seeding semantics) and validated against 15 real saves:
 /// every save shows exactly `registered == Instances` with this roster
 /// (Troll_Armored and GoblinChieftain are seeded/never credited and excluded).
+/// A 16th save caught one roster error: `DW_Poacher_Captain` ("Poacher
+/// Duellist") has no in-game enemy behind it, while `AnimagusWolf` (the Poacher
+/// animagus wolf form) IS credited by the save's Instances counter, so the
+/// roster counts AnimagusWolf instead.
+///
+/// Display names were extracted empirically from the game files: enemy IDs
+/// come from `EnemyDefinition`, and English names come from the MAIN-enUS
+/// AVAFDICT localization dictionary (`enemy_names.exe <pak>`), matching each
+/// ID's exact key (falling back to the `BP_Spider_Woodlouse_C` asset key for
+/// the base Thornback).
 pub const ENEMY_TYPES: &[EnemyType] = &[
     // Ashwinders (6)
     EnemyType {
         id: "DW_Extortionist_Grunt",
-        name: "Ashwinder",
+        name: "Ashwinder Scout",
         category: "Ashwinders",
         candidate: false,
     },
     EnemyType {
         id: "DW_Extortionist_Soldier",
-        name: "Ashwinder Executioner",
+        name: "Ashwinder Soldier",
         category: "Ashwinders",
         candidate: false,
     },
     EnemyType {
         id: "DW_Extortionist_Mage",
-        name: "Ashwinder Duellist",
+        name: "Ashwinder Assassin",
         category: "Ashwinders",
         candidate: false,
     },
@@ -38,32 +48,32 @@ pub const ENEMY_TYPES: &[EnemyType] = &[
     },
     EnemyType {
         id: "DW_Extortionist_Tank",
-        name: "Ashwinder Tank",
+        name: "Ashwinder Executioner",
         category: "Ashwinders",
         candidate: false,
     },
     EnemyType {
         id: "DW_Extortionist_Captain",
-        name: "Ashwinder Captain",
+        name: "Ashwinder Duellist",
         category: "Ashwinders",
         candidate: false,
     },
     // Poachers (6)
     EnemyType {
         id: "DW_Poacher_Grunt",
-        name: "Poacher",
+        name: "Poacher Tracker",
         category: "Poachers",
         candidate: false,
     },
     EnemyType {
         id: "DW_Poacher_Soldier",
-        name: "Poacher Executioner",
+        name: "Poacher Stalker",
         category: "Poachers",
         candidate: false,
     },
     EnemyType {
         id: "DW_Poacher_Mage",
-        name: "Poacher Duellist",
+        name: "Poacher Animagus",
         category: "Poachers",
         candidate: false,
     },
@@ -75,13 +85,13 @@ pub const ENEMY_TYPES: &[EnemyType] = &[
     },
     EnemyType {
         id: "DW_Poacher_Tank",
-        name: "Poacher Tank",
+        name: "Poacher Executioner",
         category: "Poachers",
         candidate: false,
     },
     EnemyType {
-        id: "DW_Poacher_Captain",
-        name: "Poacher Captain",
+        id: "AnimagusWolf",
+        name: "Wolf Animagus",
         category: "Poachers",
         candidate: false,
     },
@@ -120,19 +130,19 @@ pub const ENEMY_TYPES: &[EnemyType] = &[
     // Dugbogs (3)
     EnemyType {
         id: "Dugbog_Coast",
-        name: "Coastal Dugbog",
+        name: "Stoneback Dugbog",
         category: "Dugbogs",
         candidate: false,
     },
     EnemyType {
         id: "Dugbog_Lake",
-        name: "Lake Dugbog",
+        name: "Great Spined Dugbog",
         category: "Dugbogs",
         candidate: false,
     },
     EnemyType {
         id: "Dugbog_Marsh",
-        name: "Marsh Dugbog",
+        name: "Cottongrass Dugbog",
         category: "Dugbogs",
         candidate: false,
     },
@@ -145,7 +155,7 @@ pub const ENEMY_TYPES: &[EnemyType] = &[
     },
     EnemyType {
         id: "SpiderWoodlouseSpitter",
-        name: "Thornback Ambusher",
+        name: "Thornback Shooter",
         category: "Spiders",
         candidate: false,
     },
@@ -157,7 +167,7 @@ pub const ENEMY_TYPES: &[EnemyType] = &[
     },
     EnemyType {
         id: "SpiderWoodlouseSniper",
-        name: "Thornback Shooter",
+        name: "Thornback Ambusher",
         category: "Spiders",
         candidate: false,
     },
@@ -175,13 +185,13 @@ pub const ENEMY_TYPES: &[EnemyType] = &[
     },
     EnemyType {
         id: "SpiderVenomousSpitter",
-        name: "Venomous Ambusher",
+        name: "Venomous Shooter",
         category: "Spiders",
         candidate: false,
     },
     EnemyType {
         id: "SpiderVenomousSniper",
-        name: "Venomous Shooter",
+        name: "Venomous Ambusher",
         category: "Spiders",
         candidate: false,
     },
@@ -213,13 +223,13 @@ pub const ENEMY_TYPES: &[EnemyType] = &[
     // Mongrels (2)
     EnemyType {
         id: "Wolf",
-        name: "Mongrel",
+        name: "Dark Mongrel",
         category: "Mongrels",
         candidate: false,
     },
     EnemyType {
         id: "DW_Wolf",
-        name: "Dark Mongrel",
+        name: "Mongrel",
         category: "Mongrels",
         candidate: false,
     },

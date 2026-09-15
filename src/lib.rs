@@ -13,6 +13,8 @@ use std::io::{Cursor, Read};
 use std::path::Path;
 
 pub mod achievements;
+pub mod avafdict;
+pub mod pak;
 
 pub use achievements::collectors_edition::{
     load_collectors_status, CollectionCategory, CollectionCategoryStatus, CollectorsEditionStatus,

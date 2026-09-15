@@ -8,16 +8,17 @@ use hl_save_tracker::analyze_save_with_db;
 /// character UID) have been scrubbed from the readable header; the rest of
 /// the file is byte-for-byte the genuine save captured from the game.
 const FIXTURE: &str = "testdata/HL-00-00.sanitized.sav";
+const FIXTURE_2: &str = "testdata/HL-00-14.sanitized.sav";
 
 /// Values captured from the real (unsanitized) HL-00-00.sav before scrubbing.
 const EXPECTED_INSTANCES: usize = 28;
 const EXPECTED_MISSING: [&str; 6] = [
     "DW_Extortionist_Sniper",  // Ashwinder Ranger
-    "DW_Extortionist_Captain", // Ashwinder Captain
-    "DW_Poacher_Captain",      // Poacher Captain
-    "SpiderVenomousSpitter",   // Venomous Ambusher
+    "DW_Extortionist_Captain", // Ashwinder Duellist
+    "AnimagusWolf",            // Wolf Animagus (Poacher animagus form)
+    "SpiderVenomousSpitter",   // Venomous Shooter
     "Troll_River",             // River Troll
-    "DW_Wolf",                 // Dark Mongrel
+    "DW_Wolf",                 // Mongrel
 ];
 const EXPECTED_NOT_COUNTED: usize = 51; // seeded specials/bosses/named entries
 
@@ -62,13 +63,36 @@ const EXPECTED_COMPLETED_TRIALS: usize = 29;
 const EXPECTED_COLLECTED_ITEMS: usize = 571;
 const EXPECTED_TOTAL_ITEMS: usize = 633;
 
+/// "HL-00-14.sav" golden values: the same character further into the game.
+/// Finishing Touches went 28→32: Ashwinder Ranger, River Troll, Mongrel
+/// (DW_Wolf), and the Poacher Animagus Wolf (credited by the save's counter
+/// even though its class wasn't in the whitelist) are the four new finishers.
+/// Remaining: Ashwinder Duellist and Venomous Shooter.
+const EXPECTED_INSTANCES_2: usize = 32;
+const EXPECTED_MISSING_2: [&str; 2] = [
+    "DW_Extortionist_Captain", // Ashwinder Duellist
+    "SpiderVenomousSpitter",   // Venomous Shooter
+];
+const EXPECTED_NOT_COUNTED_2: usize = 51; // AnimagusWolf is now whitelisted
+const EXPECTED_GROWN_PLANTS_2: usize = 8;
+const EXPECTED_BREWED_POTIONS_2: usize = 6;
+const EXPECTED_COMPLETED_TRIALS_2: usize = 38;
+
+/// Collector's Edition for HL-00-14.sav (DLC roster now shows Gear 104,
+/// 634 total). Conjurations 120/140, Enemies 67/69, Traits 54/75.
+const EXPECTED_COLLECTED_ITEMS_2: usize = 583;
+const EXPECTED_TOTAL_ITEMS_2: usize = 634;
+
 fn fixture_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(FIXTURE)
 }
 
-#[test]
-fn fixture_is_a_real_sanitized_save() {
-    let bytes = std::fs::read(fixture_path()).expect("fixture save missing");
+fn fixture_2_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(FIXTURE_2)
+}
+
+fn assert_sanitized(path: &std::path::Path) {
+    let bytes = std::fs::read(path).expect("fixture save missing");
     assert!(bytes.starts_with(b"GVAS"), "not a GVAS save file");
     assert!(bytes.len() > 1_000_000, "suspiciously small save");
 
@@ -91,6 +115,12 @@ fn fixture_is_a_real_sanitized_save() {
         uid_count, 0,
         "fixture still contains the original character UID"
     );
+}
+
+#[test]
+fn fixtures_are_real_sanitized_saves() {
+    assert_sanitized(&fixture_path());
+    assert_sanitized(&fixture_2_path());
 }
 
 #[test]
@@ -324,5 +354,93 @@ fn conformance_collectors_edition() {
     assert_eq!(
         collectors.categories.iter().map(|c| c.total).sum::<usize>(),
         EXPECTED_TOTAL_ITEMS
+    );
+}
+
+/// Golden values for the second fixture, HL-00-14.sav. Fixture 1 is an early
+/// save; this one is the same character further along, so every achievement
+/// either shows more progress or is complete.
+#[test]
+fn conformance_hl_00_14_progress() {
+    let full = analyze_all_with_db(
+        &fixture_2_path(),
+        std::env::temp_dir().join("hl_14_test.db"),
+    )
+    .expect("failed to analyze HL-00-14 fixture");
+
+    // Finishing Touches
+    assert_eq!(full.enemies.total_enemies, 34);
+    assert_eq!(full.enemies.completed_enemies, EXPECTED_INSTANCES_2);
+    assert_eq!(
+        full.enemies.completed_enemies_list.len(),
+        full.enemies.completed_enemies,
+        "squeeze detected: registered whitelist classes != Instances"
+    );
+    assert!(
+        full.enemies.squeeze_indicator.is_none(),
+        "unexpected squeeze indicator"
+    );
+    let got_missing: HashSet<&str> = full
+        .enemies
+        .missing_enemies
+        .iter()
+        .map(|e| e.id.as_str())
+        .collect();
+    let expected_missing: HashSet<&str> = EXPECTED_MISSING_2.iter().copied().collect();
+    assert_eq!(
+        got_missing, expected_missing,
+        "missing list diverged from golden values"
+    );
+    assert_eq!(full.enemies.registered_not_counted.len(), EXPECTED_NOT_COUNTED_2);
+
+    // Beasts are unchanged since fixture 1.
+    assert_eq!(full.beasts.bred_beasts, EXPECTED_BRED_BEASTS);
+    assert_eq!(full.beasts.missing_beasts.len(), EXPECTED_MISSING_BEASTS.len());
+    assert!(full.beasts.pool_not_whitelist.is_empty());
+
+    // Put Down Roots and Going Through the Potions are now complete.
+    assert_eq!(full.plants.grown_plants, EXPECTED_GROWN_PLANTS_2);
+    assert!(full.plants.missing_plants.is_empty());
+    assert!(full.plants.pool_not_whitelist.is_empty());
+    assert_eq!(full.potions.brewed_potions, EXPECTED_BREWED_POTIONS_2);
+    assert!(full.potions.missing_potions.is_empty());
+    assert!(full.potions.pool_not_whitelist.is_empty());
+
+    // Merlin's Beard
+    assert_eq!(full.merlin.completed_trials, EXPECTED_COMPLETED_TRIALS_2);
+    assert_eq!(
+        full.merlin.progress_percent,
+        (EXPECTED_COMPLETED_TRIALS_2 as f32 / 95.0) * 100.0
+    );
+
+    // Collector's Edition
+    assert_eq!(full.collectors.total_items, EXPECTED_TOTAL_ITEMS_2);
+    assert_eq!(full.collectors.total_collected, EXPECTED_COLLECTED_ITEMS_2);
+    assert!(!full.collectors.complete, "HL-00-14 is not complete yet");
+    assert_eq!(full.collectors.categories.len(), 10);
+    let by_id = |id: &str| {
+        full.collectors
+            .categories
+            .iter()
+            .find(|c| c.id == id)
+            .unwrap_or_else(|| panic!("missing category {id}"))
+    };
+    assert_eq!(by_id("Conjurations").obtained, 120);
+    assert_eq!(by_id("Conjurations").total, 140);
+    assert_eq!(by_id("Enemies").obtained, 67);
+    assert_eq!(by_id("Enemies").total, 69);
+    assert_eq!(by_id("Traits").obtained, 54);
+    assert_eq!(by_id("Traits").total, 75);
+    for id in ["Beasts", "Brooms", "Exploration", "Potions", "Seeds", "WandStyle"] {
+        let c = by_id(id);
+        assert!(c.obtained >= c.total, "{id} should be complete: {c:?}");
+    }
+    assert_eq!(
+        full.collectors.categories.iter().map(|c| c.obtained).sum::<usize>(),
+        EXPECTED_COLLECTED_ITEMS_2
+    );
+    assert_eq!(
+        full.collectors.categories.iter().map(|c| c.total).sum::<usize>(),
+        EXPECTED_TOTAL_ITEMS_2
     );
 }

@@ -15,6 +15,10 @@ path = "src/bin/decompile_exe.rs"
 name = "extract_pak"
 path = "src/bin/extract_pak.rs"
 
+[[bin]]
+name = "enemy_names"
+path = "src/bin/enemy_names.rs"
+
 [dependencies]
 anyhow = "1.0"
 byteorder = "1.5"
