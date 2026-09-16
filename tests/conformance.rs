@@ -10,6 +10,7 @@ use hl_save_tracker::analyze_save_with_db;
 const FIXTURE: &str = "testdata/HL-00-00.sanitized.sav";
 const FIXTURE_2: &str = "testdata/HL-00-14.sanitized.sav";
 const FIXTURE_3: &str = "testdata/HL-00-07.sanitized.sav";
+const FIXTURE_4: &str = "testdata/HL-00-12.sanitized.sav";
 
 /// Values captured from the real (unsanitized) HL-00-00.sav before scrubbing.
 const EXPECTED_INSTANCES: usize = 28;
@@ -123,6 +124,19 @@ const EXPECTED_COMPLETED_TRIALS_3: usize = 21;
 const EXPECTED_COLLECTED_ITEMS_3: usize = 460;
 const EXPECTED_TOTAL_ITEMS_3: usize = 633;
 
+/// "HL-00-12.sav" golden values: the same character AFTER completing
+/// Finishing Touches (34/34). Plants and potions are also complete; beasts
+/// are still the same 5/12 as fixture 1, and only Conjurations, Gear, and
+/// Traits remain in Collector's Edition.
+const EXPECTED_INSTANCES_4: usize = 34;
+const EXPECTED_NOT_COUNTED_4: usize = 51;
+const EXPECTED_BRED_BEASTS_4: usize = 5;
+const EXPECTED_GROWN_PLANTS_4: usize = 8;
+const EXPECTED_BREWED_POTIONS_4: usize = 6;
+const EXPECTED_COMPLETED_TRIALS_4: usize = 43;
+const EXPECTED_COLLECTED_ITEMS_4: usize = 593;
+const EXPECTED_TOTAL_ITEMS_4: usize = 634;
+
 fn fixture_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(FIXTURE)
 }
@@ -133,6 +147,10 @@ fn fixture_2_path() -> PathBuf {
 
 fn fixture_3_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(FIXTURE_3)
+}
+
+fn fixture_4_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(FIXTURE_4)
 }
 
 fn assert_sanitized(path: &std::path::Path) {
@@ -166,6 +184,7 @@ fn fixtures_are_real_sanitized_saves() {
     assert_sanitized(&fixture_path());
     assert_sanitized(&fixture_2_path());
     assert_sanitized(&fixture_3_path());
+    assert_sanitized(&fixture_4_path());
 }
 
 #[test]
@@ -596,5 +615,84 @@ fn conformance_hl_00_07_midgame() {
     assert_eq!(
         full.collectors.categories.iter().map(|c| c.total).sum::<usize>(),
         EXPECTED_TOTAL_ITEMS_3
+    );
+}
+
+/// Golden values for the fourth fixture, HL-00-12.sav: Finishing Touches is
+/// fully completed (34/34). Pins down the "registered == Instances" invariant
+/// at the completion boundary, plus post-completion values for every other
+/// tracked achievement.
+#[test]
+fn conformance_hl_00_12_complete() {
+    let full = analyze_all_with_db(
+        &fixture_4_path(),
+        std::env::temp_dir().join("hl_12_test.db"),
+    )
+    .expect("failed to analyze HL-00-12 fixture");
+
+    // Finishing Touches is complete.
+    assert_eq!(full.enemies.total_enemies, 34);
+    assert_eq!(full.enemies.completed_enemies, EXPECTED_INSTANCES_4);
+    assert_eq!(
+        full.enemies.completed_enemies_list.len(),
+        full.enemies.completed_enemies,
+        "squeeze detected: registered whitelist classes != Instances"
+    );
+    assert!(full.enemies.missing_enemies.is_empty(), "finishing touches done");
+    assert!(
+        full.enemies.squeeze_indicator.is_none(),
+        "unexpected squeeze indicator"
+    );
+    assert_eq!(full.enemies.registered_not_counted.len(), EXPECTED_NOT_COUNTED_4);
+
+    // Beasts: same 5/12 as fixture 1.
+    assert_eq!(full.beasts.bred_beasts, EXPECTED_BRED_BEASTS_4);
+    assert_eq!(full.beasts.missing_beasts.len(), EXPECTED_MISSING_BEASTS.len());
+    assert!(full.beasts.pool_not_whitelist.is_empty());
+
+    // Plants and potions are complete.
+    assert_eq!(full.plants.grown_plants, EXPECTED_GROWN_PLANTS_4);
+    assert!(full.plants.missing_plants.is_empty());
+    assert!(full.plants.pool_not_whitelist.is_empty());
+    assert_eq!(full.potions.brewed_potions, EXPECTED_BREWED_POTIONS_4);
+    assert!(full.potions.missing_potions.is_empty());
+    assert!(full.potions.pool_not_whitelist.is_empty());
+
+    // Merlin's Beard
+    assert_eq!(full.merlin.completed_trials, EXPECTED_COMPLETED_TRIALS_4);
+    assert_eq!(
+        full.merlin.progress_percent,
+        (EXPECTED_COMPLETED_TRIALS_4 as f32 / 95.0) * 100.0
+    );
+
+    // Collector's Edition
+    assert_eq!(full.collectors.total_items, EXPECTED_TOTAL_ITEMS_4);
+    assert_eq!(full.collectors.total_collected, EXPECTED_COLLECTED_ITEMS_4);
+    assert!(!full.collectors.complete, "HL-00-12 is not full collection yet");
+    assert_eq!(full.collectors.categories.len(), 10);
+    let by_id = |id: &str| {
+        full.collectors
+            .categories
+            .iter()
+            .find(|c| c.id == id)
+            .unwrap_or_else(|| panic!("missing category {id}"))
+    };
+    assert_eq!(by_id("Conjurations").obtained, 121);
+    assert_eq!(by_id("Conjurations").total, 140);
+    assert_eq!(by_id("Gear").obtained, 98);
+    assert_eq!(by_id("Gear").total, 104);
+    assert_eq!(by_id("Traits").obtained, 59);
+    assert_eq!(by_id("Traits").total, 75);
+    for id in ["Beasts", "Brooms", "Enemies", "Exploration", "Potions", "Seeds", "WandStyle"] {
+        let c = by_id(id);
+        assert_eq!(c.obtained, c.total, "{id} should be complete: {c:?}");
+    }
+    assert_eq!(
+        full.collectors.categories.iter().map(|c| c.obtained).sum::<usize>(),
+        EXPECTED_COLLECTED_ITEMS_4
+    );
+    assert_eq!(
+        full.collectors.categories.iter().map(|c| c.total).sum::<usize>(),
+        EXPECTED_TOTAL_ITEMS_4
     );
 }
