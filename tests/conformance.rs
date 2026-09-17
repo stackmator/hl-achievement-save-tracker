@@ -11,6 +11,7 @@ const FIXTURE: &str = "testdata/HL-00-00.sanitized.sav";
 const FIXTURE_2: &str = "testdata/HL-00-14.sanitized.sav";
 const FIXTURE_3: &str = "testdata/HL-00-07.sanitized.sav";
 const FIXTURE_4: &str = "testdata/HL-00-12.sanitized.sav";
+const FIXTURE_5: &str = "testdata/HL-00-01.sanitized.sav";
 
 /// Values captured from the real (unsanitized) HL-00-00.sav before scrubbing.
 const EXPECTED_INSTANCES: usize = 28;
@@ -185,6 +186,7 @@ fn fixtures_are_real_sanitized_saves() {
     assert_sanitized(&fixture_2_path());
     assert_sanitized(&fixture_3_path());
     assert_sanitized(&fixture_4_path());
+    assert_sanitized(&PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(FIXTURE_5));
 }
 
 #[test]
@@ -695,4 +697,79 @@ fn conformance_hl_00_12_complete() {
         full.collectors.categories.iter().map(|c| c.total).sum::<usize>(),
         EXPECTED_TOTAL_ITEMS_4
     );
+}
+
+#[test]
+fn conformance_hl_00_01_breeding_pairs() {
+    let full = analyze_all_with_db(
+        &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(FIXTURE_5),
+        std::env::temp_dir().join("hl_01_breeding_test.db"),
+    )
+    .expect("failed to analyze HL-00-01 fixture");
+
+    assert_eq!(full.enemies.completed_enemies, 34);
+    assert_eq!(full.enemies.completed_enemies_list.len(), 34);
+    assert!(full.enemies.missing_enemies.is_empty());
+    assert!(full.enemies.squeeze_indicator.is_none());
+    assert_eq!(full.enemies.registered_not_counted.len(), 51);
+
+    let beasts = &full.beasts;
+    assert!(beasts.tracked);
+    assert_eq!(beasts.total_beasts, 12);
+    assert_eq!(beasts.bred_beasts, 10);
+    assert_eq!(beasts.bred_beasts_list.len(), 10);
+    assert!(beasts.pool_not_whitelist.is_empty());
+    assert!(beasts.squeeze_indicator.is_none());
+    let missing: HashSet<_> = beasts.missing_beasts.iter().map(|b| b.id.as_str()).collect();
+    assert_eq!(missing, HashSet::from(["Graphorn", "Unicorn"]));
+    for (id, males, females, pair_status) in [
+        ("Diricawl", 1, 1, "Pair owned"),
+        ("Fwooper", 2, 2, "Pair owned"),
+        ("GiantPurpleToad", 1, 1, "Pair owned"),
+        ("Graphorn", 1, 0, "Missing female"),
+        ("Hippogriff", 2, 2, "Pair owned"),
+        ("Jobberknoll", 4, 2, "Pair owned"),
+        ("Kneazle", 2, 2, "Pair owned"),
+        ("Mooncalf", 6, 4, "Pair owned"),
+        ("Niffler", 2, 1, "Pair owned"),
+        ("Puffskein", 3, 2, "Pair owned"),
+        ("Thestral", 1, 3, "Pair owned"),
+        ("Unicorn", 0, 3, "Missing male"),
+    ] {
+        let beast = beasts.bred_beasts_list.iter().chain(beasts.missing_beasts.iter())
+            .find(|b| b.id == id).unwrap();
+        let owned = beast.owned.as_ref().expect("ownership data missing");
+        assert_eq!(owned.adult_males, males, "{id} male count");
+        assert_eq!(owned.adult_females, females, "{id} female count");
+        assert_eq!(owned.unknown_gender, 0, "{id} unknown sex count");
+        assert_eq!(owned.pair_status(), pair_status, "{id} pair status");
+        assert_eq!(beast.bred, !missing.contains(id), "{id} breeding progress");
+    }
+
+    assert_eq!(full.plants.grown_plants, 8);
+    assert!(full.plants.missing_plants.is_empty());
+    assert_eq!(full.potions.brewed_potions, 6);
+    assert!(full.potions.missing_potions.is_empty());
+    assert_eq!(full.merlin.completed_trials, 54);
+    assert_eq!(full.merlin.total_trials, 95);
+    assert_eq!(full.collectors.total_collected, 600);
+    assert_eq!(full.collectors.total_items, 634);
+    assert!(!full.collectors.complete);
+    assert_eq!(full.collectors.categories.len(), 10);
+    for (id, obtained, total) in [
+        ("Beasts", 13, 13),
+        ("Brooms", 15, 15),
+        ("Conjurations", 122, 140),
+        ("Enemies", 69, 69),
+        ("Exploration", 150, 150),
+        ("Gear", 99, 104),
+        ("Potions", 10, 10),
+        ("Seeds", 16, 16),
+        ("Traits", 64, 75),
+        ("WandStyle", 42, 42),
+    ] {
+        let category = full.collectors.categories.iter().find(|c| c.id == id).unwrap();
+        assert_eq!(category.obtained, obtained, "{id} obtained");
+        assert_eq!(category.total, total, "{id} total");
+    }
 }

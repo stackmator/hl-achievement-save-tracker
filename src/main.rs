@@ -254,13 +254,29 @@ fn output_beast_status<W: Write>(
             writeln!(w, "{}", serde_json::to_string_pretty(status)?)?;
         }
         OutputFormat::Csv => {
-            writeln!(w, "id,name,bred")?;
+            writeln!(
+                w,
+                "id,name,bred,adult_males,adult_females,unknown_gender,pair_status"
+            )?;
             for b in status
                 .bred_beasts_list
                 .iter()
                 .chain(status.missing_beasts.iter())
             {
-                writeln!(w, "{},{},{}", b.id, b.name, b.bred)?;
+                match &b.owned {
+                    Some(owned) => writeln!(
+                        w,
+                        "{},{},{},{},{},{},{}",
+                        b.id,
+                        b.name,
+                        b.bred,
+                        owned.adult_males,
+                        owned.adult_females,
+                        owned.unknown_gender,
+                        owned.pair_status()
+                    )?,
+                    None => writeln!(w, "{},{},{},,,,Ownership unavailable", b.id, b.name, b.bred)?,
+                }
             }
         }
         OutputFormat::Table => {
@@ -290,7 +306,19 @@ fn output_beast_status<W: Write>(
                 .chain(status.missing_beasts.iter())
             {
                 let status_icon = if b.bred { "✅" } else { "❌" };
-                writeln!(w, "  {} {}", status_icon, b.name)?;
+                match &b.owned {
+                    Some(owned) => writeln!(
+                        w,
+                        "  {} {} - Adult males: {}, adult females: {}, unknown sex: {} - {}",
+                        status_icon,
+                        b.name,
+                        owned.adult_males,
+                        owned.adult_females,
+                        owned.unknown_gender,
+                        owned.pair_status()
+                    )?,
+                    None => writeln!(w, "  {} {} - Ownership unavailable", status_icon, b.name)?,
+                }
             }
 
             writeln!(
@@ -313,7 +341,18 @@ fn output_beast_status<W: Write>(
                 w,
                 "\nRoster derived from the save's PFA_26 OneOfEach pool and NamedCreatureDefinition"
             )?;
-            writeln!(w, "(12 breedable species; phoenix is excluded - not breedable).")?;
+            writeln!(
+                w,
+                "(12 breedable species; phoenix is excluded - not breedable)."
+            )?;
+            writeln!(
+                w,
+                "NOTE: Owned adult counts combine inventory + all four vivariums; offspring and classroom beasts are excluded."
+            )?;
+            writeln!(
+                w,
+                "A male/female pair must be together in a vivarium with a breeding pen to breed; pair ownership alone does not mean readiness."
+            )?;
         }
     }
     Ok(())
@@ -566,4 +605,169 @@ fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rusqlite::Connection;
+
+    fn beast_report_fixture(ownership_available: bool) -> BeastAchievementStatus {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE AchievementDynamic (
+                AchievementID TEXT, Instances INTEGER, OneOfEach TEXT
+            );
+            INSERT INTO AchievementDynamic VALUES ('PFA_26', 1, 'Diricawl');",
+        )
+        .unwrap();
+        if ownership_available {
+            conn.execute_batch(
+                "CREATE TABLE NurturingCreatureDynamic (
+                    TypeID TEXT, NurturingSpaceID TEXT, IsGenderMale INTEGER
+                );",
+            )
+            .unwrap();
+        }
+        let mut status = hl_save_tracker::load_beast_status(&conn).unwrap();
+        if ownership_available {
+            for beast in status
+                .bred_beasts_list
+                .iter_mut()
+                .chain(status.missing_beasts.iter_mut())
+            {
+                let owned = beast.owned.as_mut().unwrap();
+                let (males, females, unknown) = match beast.id.as_str() {
+                    "Diricawl" => (2, 3, 0),
+                    "Fwooper" => (0, 2, 0),
+                    "Graphorn" => (1, 0, 0),
+                    "Unicorn" => (0, 0, 2),
+                    _ => (0, 0, 0),
+                };
+                owned.adult_males = males;
+                owned.adult_females = females;
+                owned.unknown_gender = unknown;
+            }
+        }
+        status
+    }
+
+    fn render_beasts(status: &BeastAchievementStatus, format: OutputFormat) -> String {
+        let mut output = Vec::new();
+        output_beast_status(&mut output, status, &format).unwrap();
+        String::from_utf8(output).unwrap()
+    }
+
+    #[test]
+    fn beast_table_displays_counts_and_pair_status() {
+        let output = render_beasts(&beast_report_fixture(true), OutputFormat::Table);
+        for expected in [
+            "Diricawl - Adult males: 2, adult females: 3, unknown sex: 0 - Pair owned",
+            "Fwooper - Adult males: 0, adult females: 2, unknown sex: 0 - Missing male",
+            "Graphorn - Adult males: 1, adult females: 0, unknown sex: 0 - Missing female",
+            "Niffler - Adult males: 0, adult females: 0, unknown sex: 0 - Missing male and female",
+            "Unicorn - Adult males: 0, adult females: 0, unknown sex: 2 - Unknown (adult sex unavailable)",
+            "Bred: 1/12 species",
+            "counts combine inventory + all four vivariums",
+            "offspring and classroom beasts are excluded",
+            "pair must be together in a vivarium with a breeding pen",
+            "pair ownership alone does not mean readiness",
+        ] {
+            assert!(output.contains(expected), "missing table text: {expected}");
+        }
+    }
+
+    #[test]
+    fn beast_table_displays_unavailable_ownership() {
+        let status = beast_report_fixture(false);
+        let output = render_beasts(&status, OutputFormat::Table);
+        for beast in status
+            .bred_beasts_list
+            .iter()
+            .chain(status.missing_beasts.iter())
+        {
+            assert!(output.contains(&format!("{} - Ownership unavailable", beast.name)));
+        }
+        assert!(!output.contains("Adult males:"));
+        assert!(!output.contains("Missing male"));
+    }
+
+    #[test]
+    fn beast_csv_displays_counts_and_pair_status() {
+        let output = render_beasts(&beast_report_fixture(true), OutputFormat::Csv);
+        assert_eq!(
+            output.lines().next().unwrap(),
+            "id,name,bred,adult_males,adult_females,unknown_gender,pair_status"
+        );
+        assert_eq!(output.lines().count(), 13);
+        for expected in [
+            "Diricawl,Diricawl,true,2,3,0,Pair owned",
+            "Fwooper,Fwooper,false,0,2,0,Missing male",
+            "Graphorn,Graphorn,false,1,0,0,Missing female",
+            "Niffler,Niffler,false,0,0,0,Missing male and female",
+            "Unicorn,Unicorn,false,0,0,2,Unknown (adult sex unavailable)",
+        ] {
+            assert!(
+                output.lines().any(|line| line == expected),
+                "missing CSV row: {expected}"
+            );
+        }
+        assert!(output.lines().all(|line| line.split(',').count() == 7));
+    }
+
+    #[test]
+    fn beast_csv_leaves_unavailable_counts_empty() {
+        let output = render_beasts(&beast_report_fixture(false), OutputFormat::Csv);
+        assert_eq!(output.lines().count(), 13);
+        for line in output.lines().skip(1) {
+            let cells: Vec<_> = line.split(',').collect();
+            assert_eq!(cells.len(), 7);
+            assert_eq!(&cells[3..6], &["", "", ""]);
+            assert_eq!(cells[6], "Ownership unavailable");
+        }
+        assert!(output
+            .lines()
+            .any(|line| line == "Diricawl,Diricawl,true,,,,Ownership unavailable"));
+    }
+
+    #[test]
+    fn beast_json_serializes_owned_counts_and_unknown_sex() {
+        let output = render_beasts(&beast_report_fixture(true), OutputFormat::Json);
+        let json: serde_json::Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(json["bred_beasts"], 1);
+        let bred = &json["bred_beasts_list"][0];
+        assert_eq!(bred["id"], "Diricawl");
+        assert_eq!(bred["bred"], true);
+        assert_eq!(bred["owned"]["adult_males"], 2);
+        assert_eq!(bred["owned"]["adult_females"], 3);
+        assert_eq!(bred["owned"]["unknown_gender"], 0);
+        let missing = json["missing_beasts"].as_array().unwrap();
+        let unicorn = missing
+            .iter()
+            .find(|beast| beast["id"] == "Unicorn")
+            .unwrap();
+        assert_eq!(unicorn["bred"], false);
+        assert_eq!(unicorn["owned"]["adult_males"], 0);
+        assert_eq!(unicorn["owned"]["adult_females"], 0);
+        assert_eq!(unicorn["owned"]["unknown_gender"], 2);
+        let niffler = missing
+            .iter()
+            .find(|beast| beast["id"] == "Niffler")
+            .unwrap();
+        assert_eq!(niffler["owned"]["adult_males"], 0);
+        assert_eq!(niffler["owned"]["adult_females"], 0);
+        assert_eq!(niffler["owned"]["unknown_gender"], 0);
+    }
+
+    #[test]
+    fn beast_json_serializes_unavailable_ownership_as_null() {
+        let output = render_beasts(&beast_report_fixture(false), OutputFormat::Json);
+        let json: serde_json::Value = serde_json::from_str(&output).unwrap();
+        let bred = json["bred_beasts_list"].as_array().unwrap();
+        let missing = json["missing_beasts"].as_array().unwrap();
+        assert_eq!(bred.len() + missing.len(), 12);
+        for beast in bred.iter().chain(missing.iter()) {
+            assert_eq!(beast.get("owned"), Some(&serde_json::Value::Null));
+        }
+    }
 }

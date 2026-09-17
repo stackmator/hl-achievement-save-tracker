@@ -32,7 +32,7 @@ pub use achievements::merlins_beard::{
     load_merlin_status, MerlinAchievementStatus, PFA_37_ID, PFA_37_NAME, PFA_37_REQUIRED,
 };
 pub use achievements::nature_of_the_beast::{
-    load_beast_status, BeastAchievementStatus, BeastStatus, BeastType, BEAST_TYPES, PFA_26_ID,
+    load_beast_status, BeastAchievementStatus, BeastStatus, BeastType, OwnedBeasts, BEAST_TYPES, PFA_26_ID,
     PFA_26_NAME, PFA_26_REQUIRED,
 };
 pub use achievements::put_down_roots::{
