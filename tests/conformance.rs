@@ -382,7 +382,10 @@ fn conformance_collectors_edition() {
     assert!(collectors.tracked, "CollectionDynamic table should exist");
     assert_eq!(collectors.total_items, EXPECTED_TOTAL_ITEMS);
     assert_eq!(collectors.total_collected, EXPECTED_COLLECTED_ITEMS);
-    assert!(!collectors.complete, "fixture is not a completed collection");
+    assert!(
+        !collectors.complete,
+        "fixture is not a completed collection"
+    );
     assert_eq!(
         collectors.progress_percent,
         (EXPECTED_COLLECTED_ITEMS as f32 / EXPECTED_TOTAL_ITEMS as f32) * 100.0
@@ -405,7 +408,14 @@ fn conformance_collectors_edition() {
     assert_eq!(by_id("Traits").total, 75);
 
     // Fully obtained categories stay complete and sum exactly to the totals.
-    for id in ["Beasts", "Brooms", "Exploration", "Potions", "Seeds", "WandStyle"] {
+    for id in [
+        "Beasts",
+        "Brooms",
+        "Exploration",
+        "Potions",
+        "Seeds",
+        "WandStyle",
+    ] {
         let c = by_id(id);
         assert!(c.obtained >= c.total, "{id} should be complete: {c:?}");
     }
@@ -457,11 +467,17 @@ fn conformance_hl_00_14_progress() {
         got_missing, expected_missing,
         "missing list diverged from golden values"
     );
-    assert_eq!(full.enemies.registered_not_counted.len(), EXPECTED_NOT_COUNTED_2);
+    assert_eq!(
+        full.enemies.registered_not_counted.len(),
+        EXPECTED_NOT_COUNTED_2
+    );
 
     // Beasts are unchanged since fixture 1.
     assert_eq!(full.beasts.bred_beasts, EXPECTED_BRED_BEASTS);
-    assert_eq!(full.beasts.missing_beasts.len(), EXPECTED_MISSING_BEASTS.len());
+    assert_eq!(
+        full.beasts.missing_beasts.len(),
+        EXPECTED_MISSING_BEASTS.len()
+    );
     assert!(full.beasts.pool_not_whitelist.is_empty());
 
     // Put Down Roots and Going Through the Potions are now complete.
@@ -497,16 +513,31 @@ fn conformance_hl_00_14_progress() {
     assert_eq!(by_id("Enemies").total, 69);
     assert_eq!(by_id("Traits").obtained, 54);
     assert_eq!(by_id("Traits").total, 75);
-    for id in ["Beasts", "Brooms", "Exploration", "Potions", "Seeds", "WandStyle"] {
+    for id in [
+        "Beasts",
+        "Brooms",
+        "Exploration",
+        "Potions",
+        "Seeds",
+        "WandStyle",
+    ] {
         let c = by_id(id);
         assert!(c.obtained >= c.total, "{id} should be complete: {c:?}");
     }
     assert_eq!(
-        full.collectors.categories.iter().map(|c| c.obtained).sum::<usize>(),
+        full.collectors
+            .categories
+            .iter()
+            .map(|c| c.obtained)
+            .sum::<usize>(),
         EXPECTED_COLLECTED_ITEMS_2
     );
     assert_eq!(
-        full.collectors.categories.iter().map(|c| c.total).sum::<usize>(),
+        full.collectors
+            .categories
+            .iter()
+            .map(|c| c.total)
+            .sum::<usize>(),
         EXPECTED_TOTAL_ITEMS_2
     );
 }
@@ -546,11 +577,17 @@ fn conformance_hl_00_07_midgame() {
         got_missing, expected_missing,
         "missing list diverged from golden values"
     );
-    assert_eq!(full.enemies.registered_not_counted.len(), EXPECTED_NOT_COUNTED_3);
+    assert_eq!(
+        full.enemies.registered_not_counted.len(),
+        EXPECTED_NOT_COUNTED_3
+    );
 
     // The Nature of the Beast: only the Thestral bred so far.
     assert_eq!(full.beasts.bred_beasts, EXPECTED_BRED_BEASTS_3);
-    assert_eq!(full.beasts.missing_beasts.len(), EXPECTED_MISSING_BEASTS_3.len());
+    assert_eq!(
+        full.beasts.missing_beasts.len(),
+        EXPECTED_MISSING_BEASTS_3.len()
+    );
     assert!(full.beasts.pool_not_whitelist.is_empty());
     let got_missing_beasts: HashSet<&str> = full
         .beasts
@@ -611,11 +648,19 @@ fn conformance_hl_00_07_midgame() {
         assert!(c.obtained >= c.total, "{id} should be complete: {c:?}");
     }
     assert_eq!(
-        full.collectors.categories.iter().map(|c| c.obtained).sum::<usize>(),
+        full.collectors
+            .categories
+            .iter()
+            .map(|c| c.obtained)
+            .sum::<usize>(),
         EXPECTED_COLLECTED_ITEMS_3
     );
     assert_eq!(
-        full.collectors.categories.iter().map(|c| c.total).sum::<usize>(),
+        full.collectors
+            .categories
+            .iter()
+            .map(|c| c.total)
+            .sum::<usize>(),
         EXPECTED_TOTAL_ITEMS_3
     );
 }
@@ -640,16 +685,25 @@ fn conformance_hl_00_12_complete() {
         full.enemies.completed_enemies,
         "squeeze detected: registered whitelist classes != Instances"
     );
-    assert!(full.enemies.missing_enemies.is_empty(), "finishing touches done");
+    assert!(
+        full.enemies.missing_enemies.is_empty(),
+        "finishing touches done"
+    );
     assert!(
         full.enemies.squeeze_indicator.is_none(),
         "unexpected squeeze indicator"
     );
-    assert_eq!(full.enemies.registered_not_counted.len(), EXPECTED_NOT_COUNTED_4);
+    assert_eq!(
+        full.enemies.registered_not_counted.len(),
+        EXPECTED_NOT_COUNTED_4
+    );
 
     // Beasts: same 5/12 as fixture 1.
     assert_eq!(full.beasts.bred_beasts, EXPECTED_BRED_BEASTS_4);
-    assert_eq!(full.beasts.missing_beasts.len(), EXPECTED_MISSING_BEASTS.len());
+    assert_eq!(
+        full.beasts.missing_beasts.len(),
+        EXPECTED_MISSING_BEASTS.len()
+    );
     assert!(full.beasts.pool_not_whitelist.is_empty());
 
     // Plants and potions are complete.
@@ -670,7 +724,10 @@ fn conformance_hl_00_12_complete() {
     // Collector's Edition
     assert_eq!(full.collectors.total_items, EXPECTED_TOTAL_ITEMS_4);
     assert_eq!(full.collectors.total_collected, EXPECTED_COLLECTED_ITEMS_4);
-    assert!(!full.collectors.complete, "HL-00-12 is not full collection yet");
+    assert!(
+        !full.collectors.complete,
+        "HL-00-12 is not full collection yet"
+    );
     assert_eq!(full.collectors.categories.len(), 10);
     let by_id = |id: &str| {
         full.collectors
@@ -685,16 +742,32 @@ fn conformance_hl_00_12_complete() {
     assert_eq!(by_id("Gear").total, 104);
     assert_eq!(by_id("Traits").obtained, 59);
     assert_eq!(by_id("Traits").total, 75);
-    for id in ["Beasts", "Brooms", "Enemies", "Exploration", "Potions", "Seeds", "WandStyle"] {
+    for id in [
+        "Beasts",
+        "Brooms",
+        "Enemies",
+        "Exploration",
+        "Potions",
+        "Seeds",
+        "WandStyle",
+    ] {
         let c = by_id(id);
         assert_eq!(c.obtained, c.total, "{id} should be complete: {c:?}");
     }
     assert_eq!(
-        full.collectors.categories.iter().map(|c| c.obtained).sum::<usize>(),
+        full.collectors
+            .categories
+            .iter()
+            .map(|c| c.obtained)
+            .sum::<usize>(),
         EXPECTED_COLLECTED_ITEMS_4
     );
     assert_eq!(
-        full.collectors.categories.iter().map(|c| c.total).sum::<usize>(),
+        full.collectors
+            .categories
+            .iter()
+            .map(|c| c.total)
+            .sum::<usize>(),
         EXPECTED_TOTAL_ITEMS_4
     );
 }
@@ -720,7 +793,11 @@ fn conformance_hl_00_01_breeding_pairs() {
     assert_eq!(beasts.bred_beasts_list.len(), 10);
     assert!(beasts.pool_not_whitelist.is_empty());
     assert!(beasts.squeeze_indicator.is_none());
-    let missing: HashSet<_> = beasts.missing_beasts.iter().map(|b| b.id.as_str()).collect();
+    let missing: HashSet<_> = beasts
+        .missing_beasts
+        .iter()
+        .map(|b| b.id.as_str())
+        .collect();
     assert_eq!(missing, HashSet::from(["Graphorn", "Unicorn"]));
     for (id, males, females, pair_status) in [
         ("Diricawl", 1, 1, "Pair owned"),
@@ -736,8 +813,12 @@ fn conformance_hl_00_01_breeding_pairs() {
         ("Thestral", 1, 3, "Pair owned"),
         ("Unicorn", 0, 3, "Missing male"),
     ] {
-        let beast = beasts.bred_beasts_list.iter().chain(beasts.missing_beasts.iter())
-            .find(|b| b.id == id).unwrap();
+        let beast = beasts
+            .bred_beasts_list
+            .iter()
+            .chain(beasts.missing_beasts.iter())
+            .find(|b| b.id == id)
+            .unwrap();
         let owned = beast.owned.as_ref().expect("ownership data missing");
         assert_eq!(owned.adult_males, males, "{id} male count");
         assert_eq!(owned.adult_females, females, "{id} female count");
@@ -768,7 +849,12 @@ fn conformance_hl_00_01_breeding_pairs() {
         ("Traits", 64, 75),
         ("WandStyle", 42, 42),
     ] {
-        let category = full.collectors.categories.iter().find(|c| c.id == id).unwrap();
+        let category = full
+            .collectors
+            .categories
+            .iter()
+            .find(|c| c.id == id)
+            .unwrap();
         assert_eq!(category.obtained, obtained, "{id} obtained");
         assert_eq!(category.total, total, "{id} total");
     }

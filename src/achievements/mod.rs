@@ -24,8 +24,8 @@ pub use merlins_beard::{
     load_merlin_status, MerlinAchievementStatus, PFA_37_ID, PFA_37_NAME, PFA_37_REQUIRED,
 };
 pub use nature_of_the_beast::{
-    load_beast_status, BeastAchievementStatus, BeastStatus, BeastType, OwnedBeasts, BEAST_TYPES, PFA_26_ID,
-    PFA_26_NAME, PFA_26_REQUIRED,
+    load_beast_status, BeastAchievementStatus, BeastStatus, BeastType, OwnedBeasts, BEAST_TYPES,
+    PFA_26_ID, PFA_26_NAME, PFA_26_REQUIRED,
 };
 pub use put_down_roots::{
     load_plant_status, PlantAchievementStatus, PlantStatus, PlantType, PFA_28_ID, PFA_28_NAME,

@@ -238,7 +238,10 @@ fn output_plant_status<W: Write>(
                 w,
                 "\nRoster derived from PhoenixGameData.sqlite (PlantDefinition + PFA_28 pool)"
             )?;
-            writeln!(w, "(8 growable plants; pool recorder uses 'ShrivelFig' casing as registered).")?;
+            writeln!(
+                w,
+                "(8 growable plants; pool recorder uses 'ShrivelFig' casing as registered)."
+            )?;
         }
     }
     Ok(())

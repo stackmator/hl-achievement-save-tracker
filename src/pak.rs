@@ -35,7 +35,6 @@ pub fn en_locres_path() -> &'static str {
 
 #[derive(Debug)]
 struct Footer {
-    encrypted: bool,
     index_offset: u64,
     index_size: u64,
     compression: Vec<Option<Compression>>,
@@ -191,8 +190,10 @@ fn read_string(reader: &mut (impl Read + Seek)) -> Result<String> {
         let mut bytes = vec![0u8; chars * 2];
         reader.read_exact(&mut bytes)?;
         let units: Vec<u16> = bytes
-            .chunks_exact(2)
-            .map(|c| u16::from_le_bytes([c[0], c[1]]))
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|&c| u16::from_le_bytes(c))
             .collect();
         let end = units.iter().position(|&c| c == 0).unwrap_or(units.len());
         Ok(String::from_utf16_lossy(&units[..end]))
@@ -211,7 +212,7 @@ fn read_footer(file: &mut File) -> Result<Footer> {
 
     let mut uuid = [0u8; 16];
     file.read_exact(&mut uuid)?;
-    let encrypted = read_u8_bool(file)?;
+    let _encrypted = read_u8_bool(file)?;
     let magic = file.read_u32::<LittleEndian>()?;
     let version = file.read_u32::<LittleEndian>()?;
     let index_offset = file.read_u64::<LittleEndian>()?;
@@ -241,7 +242,6 @@ fn read_footer(file: &mut File) -> Result<Footer> {
     }
 
     Ok(Footer {
-        encrypted,
         index_offset,
         index_size,
         compression,
@@ -382,7 +382,7 @@ fn decompress_entry(file: &mut File, footer: &Footer, entry: &Entry) -> Result<V
                 rel(start)..rel(end)
             })
             .collect(),
-        None => vec![0..data.len()],
+        None => std::iter::once(0..data.len()).collect(),
     };
 
     match entry

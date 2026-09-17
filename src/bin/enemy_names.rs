@@ -36,9 +36,10 @@ fn main() -> Result<()> {
     eprintln!("pak contains {} indexed files", pak.file_count());
 
     // 1. Game database (EnemyDefinition lives here).
-    let db_entry = pak.find(pak::sqlite_db_path()).cloned().ok_or_else(|| {
-        anyhow::anyhow!("{} not in pak", pak::sqlite_db_path())
-    })?;
+    let db_entry = pak
+        .find(pak::sqlite_db_path())
+        .cloned()
+        .ok_or_else(|| anyhow::anyhow!("{} not in pak", pak::sqlite_db_path()))?;
     let db_bytes = pak.read(&db_entry)?;
     eprintln!("extracted {} sqlite bytes", db_bytes.len());
 
@@ -94,8 +95,10 @@ fn main() -> Result<()> {
 
     // 5. Render id -> English name (+ the resolved hint texts).
     let mut out_buf: Vec<u8> = Vec::new();
-    writeln!(out_buf, "{}\t{}\t{}\t{}\t{}",
-        "EnemyID", "Spawnable", "EnglishName", "KilledKnowledgeAction", "KnowledgeTipTexts")?;
+    writeln!(
+        out_buf,
+        "EnemyID\tSpawnable\tEnglishName\tKilledKnowledgeAction\tKnowledgeTipTexts"
+    )?;
     for e in &enemies {
         let name = dict.get(&e.id).map(clean).unwrap_or_default();
         let killed = e.killed_action.clone().unwrap_or_default();
@@ -104,7 +107,11 @@ fn main() -> Result<()> {
             let text = dict.get(k).map(clean).unwrap_or_default();
             tips.push_str(&format!("[{}]={}", k, text));
         }
-        writeln!(out_buf, "{}\t{}\t{}\t{}\t{}", e.id, e.spawnable, name, killed, tips)?;
+        writeln!(
+            out_buf,
+            "{}\t{}\t{}\t{}\t{}",
+            e.id, e.spawnable, name, killed, tips
+        )?;
     }
 
     if let Some(out_path) = args.get(2) {

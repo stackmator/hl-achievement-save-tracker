@@ -88,13 +88,11 @@ pub struct CollectorsEditionStatus {
 }
 
 pub fn load_collectors_status(conn: &Connection) -> anyhow::Result<CollectorsEditionStatus> {
-    let tracked = conn
-        .query_row(
-            "SELECT COUNT(DISTINCT ItemID) FROM CollectionDynamic",
-            [],
-            |r| r.get::<_, i64>(0),
-        )?
-        > 0;
+    let tracked = conn.query_row(
+        "SELECT COUNT(DISTINCT ItemID) FROM CollectionDynamic",
+        [],
+        |r| r.get::<_, i64>(0),
+    )? > 0;
 
     let mut categories = Vec::new();
     let mut total_collected = 0usize;
@@ -108,7 +106,9 @@ pub fn load_collectors_status(conn: &Connection) -> anyhow::Result<CollectorsEdi
             "SELECT COUNT(DISTINCT ItemID) FROM CollectionDynamic WHERE CategoryID = ?1 AND ItemState = 'Obtained'",
         )?;
         for cat in COLLECTION_CATEGORIES {
-            let total = total_stmt.query_row([cat.id], |r| r.get::<_, i64>(0))?.max(0) as usize;
+            let total = total_stmt
+                .query_row([cat.id], |r| r.get::<_, i64>(0))?
+                .max(0) as usize;
             let obtained = got_stmt.query_row([cat.id], |r| r.get::<_, i64>(0))?.max(0) as usize;
             categories.push(CollectionCategoryStatus {
                 id: cat.id.to_string(),

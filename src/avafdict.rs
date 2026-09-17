@@ -25,9 +25,6 @@ use std::io::Cursor;
 
 const HEADER_MAGIC_SIZE: usize = 0x20;
 const HEADER_ENTRY_COUNT: usize = 0x20;
-const HEADER_HEADER_SIZE: usize = 0x28;
-const HEADER_TEXT_START: usize = 0x38;
-const HEADER_TEXT_SIZE: usize = 0x40;
 const ENTRY_SIZE: usize = 12;
 
 /// A parsed AVAFDICT dictionary: an ordered list of (key, value) pairs plus
@@ -45,8 +42,10 @@ impl Dictionary {
             bail!("file too small to be AVAFDICT");
         }
         let magic: Vec<u16> = data[..HEADER_MAGIC_SIZE]
-            .chunks_exact(2)
-            .map(|c| u16::from_le_bytes([c[0], c[1]]))
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|&c| u16::from_le_bytes(c))
             .collect();
         let magic = String::from_utf16_lossy(&magic);
         if !magic.starts_with("AVAFDICT") {

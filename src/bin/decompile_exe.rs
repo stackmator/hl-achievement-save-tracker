@@ -1,4 +1,3 @@
-use iced_x86::{Decoder, DecoderOptions, Formatter, IntelFormatter};
 use std::fs::File;
 use std::io::Read;
 
@@ -10,31 +9,6 @@ fn main() {
     file.read_to_end(&mut buffer).unwrap();
 
     println!("File size: {} bytes", buffer.len());
-
-    // Search for strings as UTF-8
-    let search_strings_utf8 = [
-        "AncientMagic",
-        "Ancient_Magic",
-        "FGC_Ancient",
-        "AMagic_",
-        "AncientMagic_001",
-        "AncientMagic_000",
-        "one_of_each",
-        "OneOfEach",
-        "FGC_Ancient",
-        "AncientMagicKill",
-        "AncientMagicDefeat",
-        "AncientMagicKillTracking",
-        "AncientMagicEnemyKill",
-        "AncientMagicEnemyDefeat",
-        "AMagic_HN_AN_01",
-        "AMagic_HS_AJ_02",
-        "AMagic_CO_BA_01",
-        "AMagic_CO_AR_01",
-        "AMagic_HS_AS_02",
-        "AMagic_CO_AS_01",
-        "AMagic_HS_BG_01",
-    ];
 
     // Also search as UTF-16 (wide strings)
     let search_strings_utf16: Vec<Vec<u8>> = [
@@ -71,7 +45,6 @@ fn main() {
     .collect();
 
     println!("=== Searching as UTF-8 ===");
-    let mut found_utf8 = 0;
     for &search_str in &[
         "AncientMagic",
         "Ancient_Magic",
@@ -96,9 +69,9 @@ fn main() {
     }
 
     println!("\n=== Searching as UTF-16 (wide strings) ===");
-    for (idx, search_bytes) in search_strings_utf16.iter().enumerate() {
+    for search_bytes in &search_strings_utf16 {
         for i in 0..buffer.len().saturating_sub(search_bytes.len()) {
-            if &buffer[i..i + search_bytes.len()] == *search_bytes {
+            if buffer[i..i + search_bytes.len()] == *search_bytes {
                 // Convert bytes back to string for display
                 let s = String::from_utf16(
                     &search_bytes.iter().map(|b| *b as u16).collect::<Vec<u16>>(),

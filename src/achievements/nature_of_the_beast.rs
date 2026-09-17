@@ -121,7 +121,10 @@ fn load_owned_beasts(conn: &Connection) -> anyhow::Result<Option<HashMap<String,
     })?;
     for row in rows {
         let (type_id, gender) = row?;
-        if let Some(beast) = BEAST_TYPES.iter().find(|beast| beast.id.eq_ignore_ascii_case(&type_id)) {
+        if let Some(beast) = BEAST_TYPES
+            .iter()
+            .find(|beast| beast.id.eq_ignore_ascii_case(&type_id))
+        {
             let counts = owned.get_mut(beast.id).unwrap();
             match gender {
                 Some(1) => counts.adult_males += 1,
@@ -194,7 +197,10 @@ pub fn load_beast_status(conn: &Connection) -> anyhow::Result<BeastAchievementSt
             id: beast.id.to_string(),
             name: beast.name.to_string(),
             bred,
-            owned: owned.as_ref().and_then(|counts| counts.get(beast.id)).cloned(),
+            owned: owned
+                .as_ref()
+                .and_then(|counts| counts.get(beast.id))
+                .cloned(),
         };
         if bred {
             bred_beasts_list.push(status.clone());
@@ -346,15 +352,29 @@ mod tests {
         assert_eq!(unicorn.pair_status(), "Unknown (adult sex unavailable)");
         assert_eq!(counts(&status, "Graphorn").pair_status(), "Missing female");
         assert_eq!(counts(&status, "Niffler").pair_status(), "Missing male");
-        assert_eq!(counts(&status, "Diricawl").pair_status(), "Missing male and female");
-        assert_eq!(OwnedBeasts { adult_males: 1, adult_females: 1, unknown_gender: 1 }.pair_status(), "Pair owned");
+        assert_eq!(
+            counts(&status, "Diricawl").pair_status(),
+            "Missing male and female"
+        );
+        assert_eq!(
+            OwnedBeasts {
+                adult_males: 1,
+                adult_females: 1,
+                unknown_gender: 1
+            }
+            .pair_status(),
+            "Pair owned"
+        );
     }
 
     #[test]
     fn distinguishes_missing_table_from_empty_owned_roster() {
         let conn = database(false);
         let status = load_beast_status(&conn).unwrap();
-        assert!(status.missing_beasts.iter().all(|beast| beast.owned.is_none()));
+        assert!(status
+            .missing_beasts
+            .iter()
+            .all(|beast| beast.owned.is_none()));
         let conn = database(true);
         let status = load_beast_status(&conn).unwrap();
         assert!(status.missing_beasts.iter().all(|beast| {
