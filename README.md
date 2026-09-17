@@ -88,6 +88,19 @@ Land an Ancient Magic finisher on each of the **34** eligible enemy types ("Fini
 
 Breed each of the **12** breedable beast species (phoenixes don't count). The tracker reads the same `OneOfEach` registration data the game records per species, reporting your bred count (e.g. `5/12`) and flagging any surprise pool entries.
 
+The beast report also reads `NurturingCreatureDynamic` to count owned **adult males and females** across your inventory and all four Room of Requirement vivariums. Offspring and classroom beasts are excluded. Each species shows `Pair owned`, `Missing male`, `Missing female`, or `Missing male and female`; unknown sex or unavailable ownership data is reported explicitly rather than assumed missing.
+
+**Pair owned does not mean ready to breed:** both adults must be together in a vivarium with a breeding pen. Current ownership is separate from the historical achievement progress, so a previously bred species can still be missing a partner now.
+
+For example, the `HL-00-01` conformance fixture has **10/12 species bred**, with a **female Graphorn** and a **male Unicorn** still needed.
+
+```text
+Graphorn - Adult males: 1, adult females: 0, unknown sex: 0 - Missing female
+Unicorn - Adult males: 0, adult females: 3, unknown sex: 0 - Missing male
+```
+
+JSON includes `owned.adult_males`, `owned.adult_females`, and `owned.unknown_gender` for each species (`owned: null` when ownership data is unavailable). CSV includes these counts and a `pair_status` column.
+
 ### Put Down Roots
 
 Grow each of the **8** types of plant in the Room of Requirement (Dittany, Fluxweed, Knotgrass, Mallowsweet, Mandrake, Shrivelfig, Chinese Chomping Cabbage, Venomous Tentacula). Reports your grown count (e.g. `6/8`) and flags any surprise pool entries.
@@ -147,7 +160,23 @@ hl-save-tracker.exe -s "…\HL-00-00.sav" --report collectors
 hl-save-tracker.exe -s "…\HL-00-00.sav" -o report.txt
 ```
 
-Saves live in `%LOCALAPPDATA%\Hogwarts Legacy\Saved\SaveGames\<SteamID>\`. The file is read-only; the tool never modifies your save.
+To show breeding progress and missing partners:
+
+```powershell
+hl-save-tracker.exe -s "…\HL-00-01.sav" --report beasts
+```
+
+Saves live in `%LOCALAPPDATA%\Hogwarts Legacy\Saved\SaveGames\<SteamID>\`. Choose the most recently modified `HL-*.sav`; `HL-00-00.sav` is not necessarily the latest save. The file is read-only; the tool never modifies your save.
+
+## Tests
+
+```powershell
+cargo test
+cargo check --all-targets
+cargo clippy --all-targets
+```
+
+`tests/conformance.rs` checks five sanitized real-save fixtures in `testdata/`. The `HL-00-01.sanitized.sav` fixture covers breeding progress, adult male/female counts and missing-partner status for all 12 breedable species, plus progress for the other supported achievements. Unit tests cover ownership filtering, unknown sex, unavailable data, and table/JSON/CSV output.
 
 ## Project layout
 
